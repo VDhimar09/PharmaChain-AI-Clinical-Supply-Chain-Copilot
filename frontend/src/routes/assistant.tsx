@@ -4,9 +4,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/StatusBadge";
+import { ProcurementAIResponse } from "@/lib/api/endpoints";
+import { ApiError } from "@/lib/api/types";
+import {
+  useEvaluateProcurement,
+  useProducts,
+  useSuppliers,
+} from "@/lib/api/hooks";
 import {
   Sparkles,
   CheckCircle2,
@@ -22,12 +28,12 @@ import {
   CalendarDays,
   Box,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/assistant")({
   head: () => ({
     meta: [
-      { title: "AI Procurement Assistant — PharmaChain Supply Copilot" },
+      { title: "AI Procurement Assistant - PharmaChain Supply Copilot" },
       {
         name: "description",
         content: "AI-powered procurement recommendations for pharmaceutical inventory.",
@@ -37,46 +43,34 @@ export const Route = createFileRoute("/assistant")({
   component: AssistantPage,
 });
 
-const suppliers = [
-  "Pfizer Global Logistics",
-  "Moderna Distribution",
-  "Sanofi Pharma",
-  "Merck Logistics",
-  "Roche Clinical",
-  "Novartis Supply Co",
-  "GSK Distribution",
-  "Bayer Pharma",
-  "AstraZeneca Logistics",
-];
-
-const products = [
-  "Pfizer COVID-19 Vaccine",
-  "Moderna mRNA-1273",
-  "Insulin Glargine",
-  "Trial Compound X-117",
-  "Amoxicillin 500mg",
-  "Influenza Quadrivalent",
-  "Oncology Trial OXC-44",
-  "Heparin Sodium",
-  "HPV Gardasil 9",
-  "Trial Biologic BIO-22",
-  "Paracetamol IV",
-  "MMR Vaccine",
-];
-
 const temps = [
-  "-80°C (Ultra Low)",
-  "-70°C (Deep Freeze)",
-  "-20°C (Frozen)",
-  "2-8°C (Refrigerated)",
-  "15-25°C (Ambient)",
+  "-80C (Ultra Low)",
+  "-70C (Deep Freeze)",
+  "-20C (Frozen)",
+  "2-8C (Refrigerated)",
+  "15-25C (Ambient)",
 ];
 
 function AssistantPage() {
-  const [product, setProduct] = useState("Pfizer COVID-19 Vaccine");
-  const [supplier, setSupplier] = useState("Pfizer Global Logistics");
+  const {
+    data: productsData,
+    isLoading: productsLoading,
+    error: productsError,
+  } = useProducts();
+  const {
+    data: suppliersData,
+    isLoading: suppliersLoading,
+    error: suppliersError,
+  } = useSuppliers();
+  const procurementEvaluation = useEvaluateProcurement();
+
+  const products = productsData ?? [];
+  const suppliers = suppliersData ?? [];
+
+  const [product, setProduct] = useState("");
+  const [supplier, setSupplier] = useState("");
   const [quantity, setQuantity] = useState("2000");
-  const [temp, setTemp] = useState("-70°C (Deep Freeze)");
+  const [temp, setTemp] = useState("-70C (Deep Freeze)");
   const [arrival, setArrival] = useState("2026-07-15");
 
   const [submitted, setSubmitted] = useState<null | {
@@ -86,23 +80,70 @@ function AssistantPage() {
     temp: string;
     arrival: string;
   }>(null);
-  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!product && products.length > 0) {
+      setProduct(products[0].name);
+    }
+  }, [product, products]);
+
+  useEffect(() => {
+    if (!supplier && suppliers.length > 0) {
+      setSupplier(suppliers[0].name);
+    }
+  }, [supplier, suppliers]);
 
   function analyze() {
-    setLoading(true);
-    setSubmitted(null);
-    setTimeout(() => {
-      setSubmitted({ product, supplier, quantity, temp, arrival });
-      setLoading(false);
-    }, 900);
+    if (!product || !supplier) {
+      return;
+    }
+
+    const palletQuantity = Number(quantity);
+    if (!Number.isFinite(palletQuantity) || palletQuantity <= 0) {
+      return;
+    }
+
+    const nextSubmitted = {
+      product,
+      supplier,
+      quantity,
+      temp,
+      arrival,
+    };
+
+    setSubmitted(nextSubmitted);
+    procurementEvaluation.mutate({
+      product_name: product,
+      pallet_quantity: palletQuantity,
+      month: formatMonth(arrival),
+    });
   }
 
-  const approved = true;
+  const procurementOptionsLoading = productsLoading || suppliersLoading;
+  const procurementOptionsError = productsError || suppliersError;
+  const canAnalyze =
+    !procurementOptionsLoading &&
+    !procurementOptionsError &&
+    !procurementEvaluation.isPending &&
+    products.length > 0 &&
+    suppliers.length > 0 &&
+    Boolean(product) &&
+    Boolean(supplier);
+
+  const recommendation = procurementEvaluation.data;
+  const loading = procurementEvaluation.isPending;
+  const evaluationError = procurementEvaluation.error;
+  const riskTone = getRiskTone(recommendation?.risk_level);
+  const recommendationTone = getRecommendationTone(recommendation?.decision);
+  const confidencePercent = formatPercent(recommendation?.confidence, true);
+  const recommendationErrorMessage =
+    evaluationError instanceof ApiError
+      ? getApiErrorMessage(evaluationError)
+      : evaluationError?.message;
 
   return (
     <AppLayout>
       <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
-        {/* ─── LEFT: Procurement Request Form ─── */}
         <Card className="h-fit">
           <CardContent className="p-6 space-y-5">
             <div className="flex items-center gap-3">
@@ -110,14 +151,21 @@ function AssistantPage() {
                 <Package className="size-5" />
               </div>
               <div>
-              <div className="text-xl font-bold font-[family-name:var(--font-heading)]">Procurement Request</div>
-              <p className="text-sm text-muted-foreground">Fill details to get an AI recommendation</p>
+                <div className="text-xl font-bold font-[family-name:var(--font-heading)]">
+                  Procurement Request
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Fill details to get an AI recommendation
+                </p>
               </div>
             </div>
 
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="product" className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                <Label
+                  htmlFor="product"
+                  className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                >
                   Product
                 </Label>
                 <div className="relative">
@@ -126,19 +174,35 @@ function AssistantPage() {
                     id="product"
                     value={product}
                     onChange={(e) => setProduct(e.target.value)}
+                    disabled={productsLoading || Boolean(productsError) || products.length === 0}
                     className="w-full h-9 pl-9 pr-3 rounded-md border border-input bg-transparent text-sm appearance-none focus:outline-none focus:ring-1 focus:ring-ring"
                   >
-                    {products.map((p) => (
-                      <option key={p} value={p}>
-                        {p}
+                    {productsLoading && <option value="">Loading products...</option>}
+                    {!productsLoading && productsError && (
+                      <option value="">Unable to load products</option>
+                    )}
+                    {!productsLoading && !productsError && products.length === 0 && (
+                      <option value="">No products available</option>
+                    )}
+                    {products.map((item) => (
+                      <option key={item.id} value={item.name}>
+                        {item.name}
                       </option>
                     ))}
                   </select>
                 </div>
+                {productsError && (
+                  <p className="text-xs text-destructive mt-1">
+                    Failed to load products from the backend.
+                  </p>
+                )}
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="supplier" className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                <Label
+                  htmlFor="supplier"
+                  className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                >
                   Supplier
                 </Label>
                 <div className="relative">
@@ -147,20 +211,36 @@ function AssistantPage() {
                     id="supplier"
                     value={supplier}
                     onChange={(e) => setSupplier(e.target.value)}
+                    disabled={suppliersLoading || Boolean(suppliersError) || suppliers.length === 0}
                     className="w-full h-9 pl-9 pr-3 rounded-md border border-input bg-transparent text-sm appearance-none focus:outline-none focus:ring-1 focus:ring-ring"
                   >
-                    {suppliers.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
+                    {suppliersLoading && <option value="">Loading suppliers...</option>}
+                    {!suppliersLoading && suppliersError && (
+                      <option value="">Unable to load suppliers</option>
+                    )}
+                    {!suppliersLoading && !suppliersError && suppliers.length === 0 && (
+                      <option value="">No suppliers available</option>
+                    )}
+                    {suppliers.map((item) => (
+                      <option key={item.id} value={item.name}>
+                        {item.name}
                       </option>
                     ))}
                   </select>
                 </div>
+                {suppliersError && (
+                  <p className="text-xs text-destructive mt-1">
+                    Failed to load suppliers from the backend.
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor="quantity" className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  <Label
+                    htmlFor="quantity"
+                    className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                  >
                     Quantity
                   </Label>
                   <Input
@@ -171,7 +251,10 @@ function AssistantPage() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="arrival" className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  <Label
+                    htmlFor="arrival"
+                    className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                  >
                     Arrival Date
                   </Label>
                   <div className="relative">
@@ -188,7 +271,10 @@ function AssistantPage() {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="temp" className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                <Label
+                  htmlFor="temp"
+                  className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                >
                   Temperature Requirement
                 </Label>
                 <div className="relative">
@@ -199,9 +285,9 @@ function AssistantPage() {
                     onChange={(e) => setTemp(e.target.value)}
                     className="w-full h-9 pl-9 pr-3 rounded-md border border-input bg-transparent text-sm appearance-none focus:outline-none focus:ring-1 focus:ring-ring"
                   >
-                    {temps.map((t) => (
-                      <option key={t} value={t}>
-                        {t}
+                    {temps.map((item) => (
+                      <option key={item} value={item}>
+                        {item}
                       </option>
                     ))}
                   </select>
@@ -225,7 +311,10 @@ function AssistantPage() {
                     </Badge>
                   )}
                   {daysUntil(arrival) <= 14 && (
-                    <Badge variant="outline" className="text-warning-foreground border-warning/40 bg-warning/10 gap-1">
+                    <Badge
+                      variant="outline"
+                      className="text-warning-foreground border-warning/40 bg-warning/10 gap-1"
+                    >
                       <AlertTriangle className="size-3" /> Short Lead Time
                     </Badge>
                   )}
@@ -234,27 +323,39 @@ function AssistantPage() {
 
               <Button
                 onClick={analyze}
+                disabled={!canAnalyze}
                 className="w-full bg-gradient-to-r from-primary to-teal hover:opacity-95 shadow-lg shadow-primary/20"
               >
                 <BrainCircuit className="size-4 mr-2" />
-                Analyze Procurement
+                {loading ? "Analyzing..." : procurementOptionsLoading ? "Loading Options..." : "Analyze Procurement"}
               </Button>
+              {procurementOptionsError && (
+                <p className="text-xs text-destructive">
+                  Procurement form options could not be loaded. Please refresh and try again.
+                </p>
+              )}
+              {recommendationErrorMessage && (
+                <p className="text-xs text-destructive">
+                  {recommendationErrorMessage}
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>
 
-        {/* ─── RIGHT: AI Recommendation Panel ─── */}
         <div className="space-y-4">
-          {/* AI greeting */}
           <Card>
             <CardContent className="p-5 flex items-start gap-3">
               <div className="size-10 rounded-xl bg-gradient-to-br from-primary to-teal text-primary-foreground grid place-items-center shrink-0 shadow-lg shadow-primary/20">
                 <Sparkles className="size-5" />
               </div>
               <div className="text-sm leading-relaxed">
-                <div className="text-xl font-bold font-[family-name:var(--font-heading)]">AI Procurement Copilot</div>
+                <div className="text-xl font-bold font-[family-name:var(--font-heading)]">
+                  AI Procurement Copilot
+                </div>
                 <p className="text-sm text-muted-foreground mt-1">
-                  I analyze warehouse capacity, expiry risk, temperature chain integrity, and demand forecasts to recommend optimal storage zones.
+                  I analyze warehouse capacity, expiry risk, temperature chain integrity, and
+                  demand forecasts to recommend optimal storage zones.
                 </p>
               </div>
             </CardContent>
@@ -271,8 +372,8 @@ function AssistantPage() {
                   <p className="text-muted-foreground mt-1">
                     Requesting <span className="text-foreground font-medium">{submitted.quantity} units</span> of{" "}
                     <span className="text-foreground font-medium">{submitted.product}</span> from{" "}
-                    <span className="text-foreground font-medium">{submitted.supplier}</span>, arriving{" "}
-                    <span className="text-foreground font-medium">{submitted.arrival}</span>.
+                    <span className="text-foreground font-medium">{submitted.supplier}</span>,
+                    arriving <span className="text-foreground font-medium">{submitted.arrival}</span>.
                   </p>
                 </div>
               </CardContent>
@@ -285,107 +386,96 @@ function AssistantPage() {
                 <div className="size-10 rounded-xl bg-gradient-to-br from-primary to-teal text-primary-foreground grid place-items-center animate-pulse">
                   <Sparkles className="size-5" />
                 </div>
-                <div className="text-sm text-muted-foreground">Analyzing capacity, demand forecasts, and cold-chain integrity…</div>
+                <div className="text-sm text-muted-foreground">
+                  Analyzing capacity, demand forecasts, and cold-chain integrity...
+                </div>
               </CardContent>
             </Card>
           )}
 
-          {submitted && !loading && (
+          {submitted && recommendation && !loading && (
             <Card className="overflow-hidden border-success/40">
-              {/* Header */}
               <div className="bg-gradient-to-r from-success/20 via-success/5 to-transparent px-6 py-5 flex items-center justify-between border-b border-success/30">
                 <div className="flex items-center gap-3">
-                  <div className="size-12 rounded-full bg-success text-success-foreground grid place-items-center shadow-lg shadow-success/30">
+                  <div className={`size-12 rounded-full grid place-items-center shadow-lg ${recommendationTone.badgeClass}`}>
                     <CheckCircle2 className="size-6" />
                   </div>
                   <div>
-                    <div className="text-xs uppercase tracking-wider text-success font-semibold">Recommendation</div>
-                    <div className="text-xl font-bold">APPROVED</div>
+                    <div className="text-xs uppercase tracking-wider text-success font-semibold">
+                      Recommendation
+                    </div>
+                    <div className="text-xl font-bold">{recommendation.decision}</div>
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-2">
-                  <StatusBadge label="Risk: LOW" tone="success" />
+                  <StatusBadge label={`Risk: ${recommendation.risk_level}`} tone={riskTone} />
                   <Badge variant="outline" className="text-primary border-primary/40 bg-primary/10 gap-1">
-                    <BrainCircuit className="size-3" /> 94% Confidence
+                    <BrainCircuit className="size-3" /> {confidencePercent} Confidence
                   </Badge>
                 </div>
               </div>
 
               <CardContent className="p-6 space-y-6">
-                {/* Metrics Grid */}
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   <MetricCard
                     icon={Warehouse}
                     label="Current Occupancy"
-                    value="72%"
-                    sub="1,080 / 1,500 pallets"
-                    bar={72}
+                    value={formatPercent(recommendation.current_occupancy_percent)}
+                    sub={`${formatPercent(recommendation.current_occupancy_percent)} current warehouse utilization`}
+                    bar={recommendation.current_occupancy_percent}
                     barTone="primary"
                   />
                   <MetricCard
                     icon={TrendingUp}
                     label="Forecast Occupancy"
-                    value="84%"
-                    sub="1,260 / 1,500 pallets"
-                    bar={84}
+                    value={formatPercent(recommendation.projected_occupancy_percent)}
+                    sub={`${formatPercent(recommendation.projected_occupancy_percent)} after this procurement`}
+                    bar={recommendation.projected_occupancy_percent}
                     barTone="teal"
                   />
                   <MetricCard
                     icon={Warehouse}
                     label="Recommended Zone"
-                    value="Cold Storage B"
-                    sub="2-8°C capacity"
+                    value={recommendation.recommended_zone}
+                    sub={getBadgeValue(recommendation.badges, "Zone Type")}
                   />
                   <MetricCard
                     icon={AlertTriangle}
                     label="Risk Level"
-                    value="LOW"
-                    valueTone="success"
-                    sub="Under 90% safety threshold"
+                    value={recommendation.risk_level}
+                    valueTone={getRiskValueTone(recommendation.risk_level)}
+                    sub={riskLevelDescription(recommendation.risk_level)}
                   />
                   <MetricCard
                     icon={BrainCircuit}
                     label="Confidence Score"
-                    value="94%"
+                    value={confidencePercent}
                     valueTone="primary"
-                    sub="Based on 6 months of data"
+                    sub={`${recommendation.inventory_units.toLocaleString()} units currently in inventory`}
                   />
                   <MetricCard
                     icon={Thermometer}
                     label="Temperature Fit"
-                    value="Match"
-                    valueTone="teal"
-                    sub="Cold chain validated"
+                    value={formatTemperatureFit(recommendation.temperature_fit)}
+                    valueTone={recommendation.temperature_fit === "MATCH" ? "teal" : "warning"}
+                    sub={getBadgeValue(recommendation.badges, "Temperature Fit")}
                   />
                 </div>
 
-                {/* Cold Chain & Expiry Indicators */}
                 <div className="flex flex-wrap gap-2">
-                  <Badge variant="outline" className="text-primary border-primary/40 bg-primary/10 gap-1">
-                    <Thermometer className="size-3" /> Cold Chain: Verified
-                  </Badge>
-                  <Badge variant="outline" className="text-success border-success/40 bg-success/10 gap-1">
-                    <Snowflake className="size-3" /> Continuous Monitoring
-                  </Badge>
-                  <Badge variant="outline" className="text-teal border-teal/40 bg-teal/10 gap-1">
-                    <ShieldCheck className="size-3" /> GxP Compliant
-                  </Badge>
-                  <Badge variant="outline" className="text-warning-foreground border-warning/40 bg-warning/10 gap-1">
-                    <AlertTriangle className="size-3" /> Expiry Risk: Low
-                  </Badge>
-                  <Badge variant="outline" className="text-muted-foreground border-border bg-muted/50 gap-1">
-                    <CalendarDays className="size-3" /> Shelf Life: 14 mo
-                  </Badge>
+                  {recommendation.badges.map((badge) => (
+                    <RecommendationBadge key={badge} badge={badge} />
+                  ))}
                 </div>
 
-                {/* Reasoning */}
                 <div className="rounded-xl border border-border bg-muted/40 p-5 space-y-3">
-                  <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Reasoning</div>
+                  <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    Reasoning
+                  </div>
                   <div className="grid gap-3">
-                    <ReasonItem icon={Warehouse} text="Clinical Trial X ends next month, freeing 30 pallet spaces in Cold Storage B." />
-                    <ReasonItem icon={TrendingUp} text="Forecast occupancy stays under the 90% safety threshold even after this shipment." />
-                    <ReasonItem icon={Thermometer} text="Arrival window aligns with cold-chain capacity rotation schedule." />
-                    <ReasonItem icon={ShieldCheck} text="Supplier cold-chain audit passed (last reviewed 2026-05-12)." />
+                    {recommendation.reasoning.map((item) => (
+                      <ReasonItem key={item} icon={iconForReason(item)} text={item} />
+                    ))}
                   </div>
                 </div>
               </CardContent>
@@ -447,8 +537,14 @@ function MetricCard({
         )}
       </div>
       <div>
-        <div className="text-sm font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
-        {valueTone === "default" && <div className="text-lg font-bold font-[family-name:var(--font-heading)] mt-0.5">{value}</div>}
+        <div className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
+          {label}
+        </div>
+        {valueTone === "default" && (
+          <div className="text-lg font-bold font-[family-name:var(--font-heading)] mt-0.5">
+            {value}
+          </div>
+        )}
         {sub && <div className="text-sm text-muted-foreground mt-0.5">{sub}</div>}
       </div>
       {bar !== undefined && (
@@ -456,7 +552,7 @@ function MetricCard({
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-primary/10">
             <div
               className={`h-full rounded-full ${barColor[barTone]} transition-all`}
-              style={{ width: `${bar}%` }}
+              style={{ width: `${Math.max(0, Math.min(bar, 100))}%` }}
             />
           </div>
         </div>
@@ -480,6 +576,181 @@ function ReasonItem({
       <p className="text-sm leading-relaxed text-foreground">{text}</p>
     </div>
   );
+}
+
+function RecommendationBadge({
+  badge,
+}: {
+  badge: string;
+}) {
+  const icon = iconForBadge(badge);
+  const className = classNameForBadge(badge);
+  const Icon = icon;
+
+  return (
+    <Badge variant="outline" className={className}>
+      <Icon className="size-3" /> {badge}
+    </Badge>
+  );
+}
+
+function formatMonth(dateStr: string): string {
+  const date = new Date(`${dateStr}T00:00:00`);
+  if (Number.isNaN(date.getTime())) {
+    return "Unknown";
+  }
+
+  return date.toLocaleString("en-US", { month: "long" });
+}
+
+function formatPercent(value: number | undefined, fromUnit = false): string {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return "N/A";
+  }
+
+  const percentage = fromUnit ? value * 100 : value;
+  return `${Math.round(percentage)}%`;
+}
+
+function formatTemperatureFit(value: ProcurementAIResponse["temperature_fit"]): string {
+  return value === "MATCH" ? "Match" : "Mismatch";
+}
+
+function getBadgeValue(badges: string[], prefix: string): string {
+  const match = badges.find((badge) => badge.startsWith(`${prefix}:`));
+  if (!match) {
+    return "Not provided";
+  }
+
+  return match.split(":").slice(1).join(":").trim();
+}
+
+function getRiskTone(riskLevel: ProcurementAIResponse["risk_level"] | undefined) {
+  if (riskLevel === "HIGH") {
+    return "destructive";
+  }
+
+  if (riskLevel === "MEDIUM") {
+    return "warning";
+  }
+
+  return "success";
+}
+
+function getRiskValueTone(riskLevel: ProcurementAIResponse["risk_level"]) {
+  if (riskLevel === "HIGH") {
+    return "warning";
+  }
+
+  if (riskLevel === "MEDIUM") {
+    return "primary";
+  }
+
+  return "success";
+}
+
+function riskLevelDescription(riskLevel: ProcurementAIResponse["risk_level"]): string {
+  if (riskLevel === "HIGH") {
+    return "Recommendation requires capacity or temperature remediation";
+  }
+
+  if (riskLevel === "MEDIUM") {
+    return "Recommendation requires additional operational review";
+  }
+
+  return "Recommendation is within current operating thresholds";
+}
+
+function getRecommendationTone(decision: ProcurementAIResponse["decision"] | undefined) {
+  if (decision === "REJECT") {
+    return {
+      badgeClass: "bg-destructive/90 text-destructive-foreground shadow-destructive/30",
+    };
+  }
+
+  if (decision === "REVIEW") {
+    return {
+      badgeClass: "bg-warning text-warning-foreground shadow-warning/30",
+    };
+  }
+
+  return {
+    badgeClass: "bg-success text-success-foreground shadow-success/30",
+  };
+}
+
+function iconForReason(reason: string) {
+  const text = reason.toLowerCase();
+
+  if (text.includes("temperature")) {
+    return Thermometer;
+  }
+
+  if (text.includes("shipment")) {
+    return TrendingUp;
+  }
+
+  if (text.includes("inventory") || text.includes("warehouse") || text.includes("zone")) {
+    return Warehouse;
+  }
+
+  return ShieldCheck;
+}
+
+function iconForBadge(badge: string) {
+  const text = badge.toLowerCase();
+
+  if (text.includes("temperature")) {
+    return Thermometer;
+  }
+
+  if (text.includes("shelf life")) {
+    return CalendarDays;
+  }
+
+  if (text.includes("shipment")) {
+    return AlertTriangle;
+  }
+
+  if (text.includes("zone")) {
+    return Warehouse;
+  }
+
+  return ShieldCheck;
+}
+
+function classNameForBadge(badge: string): string {
+  const text = badge.toLowerCase();
+
+  if (text.includes("mismatch") || text.includes("pending")) {
+    return "text-warning-foreground border-warning/40 bg-warning/10 gap-1";
+  }
+
+  if (text.includes("match") || text.includes("no incoming")) {
+    return "text-success border-success/40 bg-success/10 gap-1";
+  }
+
+  if (text.includes("zone")) {
+    return "text-primary border-primary/40 bg-primary/10 gap-1";
+  }
+
+  return "text-muted-foreground border-border bg-muted/50 gap-1";
+}
+
+function getApiErrorMessage(error: ApiError): string {
+  if (typeof error.body?.detail === "string") {
+    return error.body.detail;
+  }
+
+  if (Array.isArray(error.body?.detail)) {
+    return error.body.detail.join(", ");
+  }
+
+  if (typeof error.body?.message === "string") {
+    return error.body.message;
+  }
+
+  return error.message;
 }
 
 function daysUntil(dateStr: string): number {

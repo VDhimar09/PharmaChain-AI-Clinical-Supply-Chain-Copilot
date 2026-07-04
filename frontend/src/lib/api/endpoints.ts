@@ -48,6 +48,36 @@ export type Product = {
   temperature_max: number;
 };
 
+export type Supplier = {
+  id: string;
+  name: string;
+  country: string;
+  contact_person: string;
+  email: string;
+  phone: string;
+  lead_time_days: number;
+  reliability_score: number;
+};
+
+export type ProcurementAIRequest = {
+  product_name: string;
+  pallet_quantity: number;
+  month: string;
+};
+
+export type ProcurementAIResponse = {
+  decision: "APPROVE" | "REJECT" | "REVIEW";
+  confidence: number;
+  reasoning: string[];
+  inventory_units: number;
+  risk_level: "LOW" | "MEDIUM" | "HIGH";
+  recommended_zone: string;
+  temperature_fit: "MATCH" | "MISMATCH";
+  badges: string[];
+  current_occupancy_percent: number;
+  projected_occupancy_percent: number;
+};
+
 export type WarehouseZone = {
   id: string;
   name: string;
@@ -73,6 +103,15 @@ export const inventoryApi = {
 export const productsApi = {
   list: () => apiClient.get<Product[]>("/api/products"),
   get: (id: string) => apiClient.get<Product>(`/api/products/${id}`),
+};
+
+export const suppliersApi = {
+  list: () => apiClient.get<Supplier[]>("/api/suppliers"),
+};
+
+export const procurementAiApi = {
+  evaluate: (payload: ProcurementAIRequest) =>
+    apiClient.post<ProcurementAIResponse>("/api/procurement-ai/evaluate", payload),
 };
 
 export const warehouseZonesApi = {

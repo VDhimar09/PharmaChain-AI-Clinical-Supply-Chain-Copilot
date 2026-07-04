@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from typing import List, Literal
 
 
@@ -20,6 +20,21 @@ class ProcurementAIResponse(BaseModel):
     reasoning: List[str]
 
     inventory_units: int
+
+    risk_level: Literal[
+        "LOW",
+        "MEDIUM",
+        "HIGH"
+    ]
+
+    recommended_zone: str
+
+    temperature_fit: Literal[
+        "MATCH",
+        "MISMATCH"
+    ]
+
+    badges: List[str]
 
     current_occupancy_percent: float
 

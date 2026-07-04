@@ -7,8 +7,13 @@ import {
   DashboardSummary,
   inventoryApi,
   InventoryItem,
+  procurementAiApi,
+  ProcurementAIRequest,
+  ProcurementAIResponse,
   productsApi,
   Product,
+  suppliersApi,
+  Supplier,
   warehouseZonesApi,
   WarehouseZone,
   WarehouseCapacitySummary,
@@ -67,6 +72,25 @@ export function useProducts(options?: UseQueryOptions<Product[], Error>) {
     queryFn: productsApi.list,
     staleTime: 1000 * 60,
     gcTime: 1000 * 60 * 5,
+    ...options,
+  });
+}
+
+export function useSuppliers(options?: UseQueryOptions<Supplier[], Error>) {
+  return useQuery<Supplier[], Error>({
+    queryKey: ["suppliers"],
+    queryFn: suppliersApi.list,
+    staleTime: 1000 * 60,
+    gcTime: 1000 * 60 * 5,
+    ...options,
+  });
+}
+
+export function useEvaluateProcurement(
+  options?: UseMutationOptions<ProcurementAIResponse, Error, ProcurementAIRequest>,
+) {
+  return useMutation<ProcurementAIResponse, Error, ProcurementAIRequest>({
+    mutationFn: procurementAiApi.evaluate,
     ...options,
   });
 }

@@ -146,11 +146,29 @@ class ProcurementAIService:
             decision.reasoning
         )
 
+        risk_level = self._determine_risk_level(
+            decision=decision.decision
+        )
+        temperature_fit = (
+            "MATCH" if temperature_match
+            else "MISMATCH"
+        )
+        badges = self._build_badges(
+            temperature_fit=temperature_fit,
+            incoming_conflict=incoming_conflict,
+            shelf_life_days=product.shelf_life_days,
+            zone_type=zone.zone_type,
+        )
+
         return {
             "decision": decision.decision,
             "confidence": decision.confidence,
             "reasoning": reasoning,
             "inventory_units": inventory_units,
+            "risk_level": risk_level,
+            "recommended_zone": zone.name,
+            "temperature_fit": temperature_fit,
+            "badges": badges,
             "current_occupancy_percent": round(
                 occupancy,
                 2
@@ -160,3 +178,49 @@ class ProcurementAIService:
                 2
             )
         }
+
+    def _determine_risk_level(
+        self,
+        decision: str,
+    ) -> str:
+        if decision == "REJECT":
+            return "HIGH"
+
+        if decision == "REVIEW":
+            return "MEDIUM"
+
+        return "LOW"
+
+    def _build_badges(
+        self,
+        temperature_fit: str,
+        incoming_conflict: bool,
+        shelf_life_days: int,
+        zone_type: str,
+    ) -> list[str]:
+        badges = [
+            f"Temperature Fit: {temperature_fit.title()}",
+            f"Zone Type: {zone_type}",
+            f"Shelf Life: {self._format_shelf_life_months(shelf_life_days)}",
+        ]
+
+        if incoming_conflict:
+            badges.append(
+                "Incoming Shipments Pending"
+            )
+        else:
+            badges.append(
+                "No Incoming Shipment Conflict"
+            )
+
+        return badges
+
+    def _format_shelf_life_months(
+        self,
+        shelf_life_days: int,
+    ) -> str:
+        months = max(
+            1,
+            round(shelf_life_days / 30)
+        )
+        return f"{months} mo"
