@@ -2,19 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Search, Thermometer, Boxes, AlertTriangle, Clock, CheckCircle2 } from "lucide-react";
 import { useMemo, useState } from "react";
-import { InventoryItem } from "@/lib/api/endpoints";
-import { useInventory } from "@/lib/api/hooks";
+import { inventory } from "@/lib/mock-data";
 import { StatusBadge, statusTone } from "@/components/StatusBadge";
 import { AiInsight } from "@/components/AiInsight";
 
@@ -22,10 +13,7 @@ export const Route = createFileRoute("/inventory")({
   head: () => ({
     meta: [
       { title: "Inventory — AI Clinical Supply Chain Copilot" },
-      {
-        name: "description",
-        content: "Searchable inventory of vaccines, medicines, and clinical trial products.",
-      },
+      { name: "description", content: "Searchable inventory of vaccines, medicines, and clinical trial products." },
     ],
   }),
   component: InventoryPage,
@@ -35,68 +23,33 @@ function InventoryPage() {
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string>("All");
 
-  const {
-    data: inventoryData,
-    isLoading: inventoryLoading,
-    error: inventoryError,
-  } = useInventory();
-
-  const isLoading = inventoryLoading;
-  const error = inventoryError;
-
-  const inventory = useMemo(() => inventoryData ?? [], [inventoryData]);
-
   const filtered = useMemo(() => {
     const term = q.toLowerCase();
     return inventory.filter(
       (i) =>
         (cat === "All" || i.category === cat) &&
-        (i.product_name.toLowerCase().includes(term) || i.sku.toLowerCase().includes(term)),
+        (i.name.toLowerCase().includes(term) || i.sku.toLowerCase().includes(term)),
     );
-  }, [q, cat, inventory]);
+  }, [q, cat]);
 
   const summary = useMemo(() => {
-    const total = inventory.reduce((a, i) => a + i.available_quantity, 0);
+    const total = inventory.reduce((a, i) => a + i.available, 0);
     const critical = inventory.filter((i) => i.status === "Critical").length;
     const low = inventory.filter((i) => i.status === "Low Stock").length;
     const expiring = inventory.filter((i) => i.status === "Expiring Soon").length;
     const healthy = inventory.filter((i) => i.status === "In Stock").length;
     return { total, critical, low, expiring, healthy };
-  }, [inventory]);
+  }, []);
 
   return (
     <AppLayout>
       <div className="space-y-6">
         {/* KPI summary */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <KpiTile
-            icon={Boxes}
-            label="Total units"
-            value={summary.total.toLocaleString()}
-            caption={`${inventory.length} SKUs tracked`}
-            tone="primary"
-          />
-          <KpiTile
-            icon={CheckCircle2}
-            label="Healthy SKUs"
-            value={String(summary.healthy)}
-            caption="In stock & in spec"
-            tone="success"
-          />
-          <KpiTile
-            icon={AlertTriangle}
-            label="Low / critical"
-            value={String(summary.low + summary.critical)}
-            caption={`${summary.critical} critical · ${summary.low} low`}
-            tone="warning"
-          />
-          <KpiTile
-            icon={Clock}
-            label="Expiring soon"
-            value={String(summary.expiring)}
-            caption="< 30 days to expiry"
-            tone="info"
-          />
+          <KpiTile icon={Boxes} label="Total units" value={summary.total.toLocaleString()} caption={`${inventory.length} SKUs tracked`} tone="primary" />
+          <KpiTile icon={CheckCircle2} label="Healthy SKUs" value={String(summary.healthy)} caption="In stock & in spec" tone="success" />
+          <KpiTile icon={AlertTriangle} label="Low / critical" value={String(summary.low + summary.critical)} caption={`${summary.critical} critical · ${summary.low} low`} tone="warning" />
+          <KpiTile icon={Clock} label="Expiring soon" value={String(summary.expiring)} caption="< 30 days to expiry" tone="info" />
         </div>
 
         {/* AI insight */}
@@ -154,71 +107,46 @@ function InventoryPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading ? (
-                  Array.from({ length: 6 }).map((_, index) => (
-                    <TableRow key={index}>
-                      <TableCell colSpan={8} className="py-5">
-                        <Skeleton className="h-4 w-full" />
+                {filtered.map((i) => {
+                  const critical = i.status === "Critical";
+                  return (
+                    <TableRow
+                      key={i.id}
+                      className={`group cursor-pointer transition-colors ${
+                        critical ? "bg-destructive/[0.03] hover:bg-destructive/[0.06]" : "hover:bg-muted/40"
+                      }`}
+                    >
+                      <TableCell className="font-medium relative">
+                        {critical && (
+                          <span className="absolute left-0 top-2 bottom-2 w-0.5 rounded-full bg-destructive" />
+                        )}
+                        {i.name}
                       </TableCell>
+                      <TableCell className="text-muted-foreground font-mono text-xs">{i.sku}</TableCell>
+                      <TableCell>
+                        <span className="text-xs px-2 py-0.5 rounded-md bg-secondary text-secondary-foreground">
+                          {i.category}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                          <Thermometer className="size-3" />
+                          {i.temperature}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums font-medium">{i.available.toLocaleString()}</TableCell>
+                      <TableCell className="text-right tabular-nums text-muted-foreground">{i.reserved.toLocaleString()}</TableCell>
+                      <TableCell className="text-sm tabular-nums">{i.expiry}</TableCell>
+                      <TableCell><StatusBadge label={i.status} tone={statusTone(i.status)} /></TableCell>
                     </TableRow>
-                  ))
-                ) : error ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center text-destructive py-10">
-                      Failed to load inventory. Please refresh the page or try again later.
-                    </TableCell>
-                  </TableRow>
-                ) : filtered.length === 0 ? (
+                  );
+                })}
+                {filtered.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
                       No products match your search.
                     </TableCell>
                   </TableRow>
-                ) : (
-                  filtered.map((i) => {
-                    const critical = i.status === "Critical";
-                    return (
-                      <TableRow
-                        key={i.id}
-                        className={`group cursor-pointer transition-colors ${
-                          critical
-                            ? "bg-destructive/[0.03] hover:bg-destructive/[0.06]"
-                            : "hover:bg-muted/40"
-                        }`}
-                      >
-                        <TableCell className="font-medium relative">
-                          {critical && (
-                            <span className="absolute left-0 top-2 bottom-2 w-0.5 rounded-full bg-destructive" />
-                          )}
-                          {i.product_name}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground font-mono text-xs">
-                          {i.sku}
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-xs px-2 py-0.5 rounded-md bg-secondary text-secondary-foreground">
-                            {i.category}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                            <Thermometer className="size-3" />
-                            {i.temperature_requirement}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums font-medium">
-                          {i.available_quantity.toLocaleString()}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums text-muted-foreground">
-                          {i.reserved_quantity.toLocaleString()}
-                        </TableCell>
-                        <TableCell className="text-sm tabular-nums">{i.expiry_date}</TableCell>
-                        <TableCell>
-                          <StatusBadge label={i.status} tone={statusTone(i.status)} />
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
                 )}
               </TableBody>
             </Table>
@@ -256,9 +184,7 @@ function KpiTile({
         </span>
       </div>
       <div className="mt-4">
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          {label}
-        </div>
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</div>
         <div className="mt-1 text-[32px] leading-none font-bold font-[family-name:var(--font-heading)] tabular-nums tracking-tight">
           {value}
         </div>

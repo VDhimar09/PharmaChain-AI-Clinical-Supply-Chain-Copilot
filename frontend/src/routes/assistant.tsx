@@ -4,15 +4,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/StatusBadge";
-import { ProcurementAIResponse } from "@/lib/api/endpoints";
-import { ApiError } from "@/lib/api/types";
-import {
-  useEvaluateProcurement,
-  useProducts,
-  useSuppliers,
-} from "@/lib/api/hooks";
 import {
   Sparkles,
   CheckCircle2,
@@ -27,13 +21,18 @@ import {
   BrainCircuit,
   CalendarDays,
   Box,
+  ArrowRight,
+  Radio,
+  Activity,
+  Lock,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+
+import { useState } from "react";
 
 export const Route = createFileRoute("/assistant")({
   head: () => ({
     meta: [
-      { title: "AI Procurement Assistant - PharmaChain Supply Copilot" },
+      { title: "AI Procurement Assistant — PharmaChain Supply Copilot" },
       {
         name: "description",
         content: "AI-powered procurement recommendations for pharmaceutical inventory.",
@@ -43,34 +42,46 @@ export const Route = createFileRoute("/assistant")({
   component: AssistantPage,
 });
 
+const suppliers = [
+  "Pfizer Global Logistics",
+  "Moderna Distribution",
+  "Sanofi Pharma",
+  "Merck Logistics",
+  "Roche Clinical",
+  "Novartis Supply Co",
+  "GSK Distribution",
+  "Bayer Pharma",
+  "AstraZeneca Logistics",
+];
+
+const products = [
+  "Pfizer COVID-19 Vaccine",
+  "Moderna mRNA-1273",
+  "Insulin Glargine",
+  "Trial Compound X-117",
+  "Amoxicillin 500mg",
+  "Influenza Quadrivalent",
+  "Oncology Trial OXC-44",
+  "Heparin Sodium",
+  "HPV Gardasil 9",
+  "Trial Biologic BIO-22",
+  "Paracetamol IV",
+  "MMR Vaccine",
+];
+
 const temps = [
-  "-80C (Ultra Low)",
-  "-70C (Deep Freeze)",
-  "-20C (Frozen)",
-  "2-8C (Refrigerated)",
-  "15-25C (Ambient)",
+  "-80°C (Ultra Low)",
+  "-70°C (Deep Freeze)",
+  "-20°C (Frozen)",
+  "2-8°C (Refrigerated)",
+  "15-25°C (Ambient)",
 ];
 
 function AssistantPage() {
-  const {
-    data: productsData,
-    isLoading: productsLoading,
-    error: productsError,
-  } = useProducts();
-  const {
-    data: suppliersData,
-    isLoading: suppliersLoading,
-    error: suppliersError,
-  } = useSuppliers();
-  const procurementEvaluation = useEvaluateProcurement();
-
-  const products = productsData ?? [];
-  const suppliers = suppliersData ?? [];
-
-  const [product, setProduct] = useState("");
-  const [supplier, setSupplier] = useState("");
+  const [product, setProduct] = useState("Pfizer COVID-19 Vaccine");
+  const [supplier, setSupplier] = useState("Pfizer Global Logistics");
   const [quantity, setQuantity] = useState("2000");
-  const [temp, setTemp] = useState("-70C (Deep Freeze)");
+  const [temp, setTemp] = useState("-70°C (Deep Freeze)");
   const [arrival, setArrival] = useState("2026-07-15");
 
   const [submitted, setSubmitted] = useState<null | {
@@ -80,286 +91,123 @@ function AssistantPage() {
     temp: string;
     arrival: string;
   }>(null);
-
-  useEffect(() => {
-    if (!product && products.length > 0) {
-      setProduct(products[0].name);
-    }
-  }, [product, products]);
-
-  useEffect(() => {
-    if (!supplier && suppliers.length > 0) {
-      setSupplier(suppliers[0].name);
-    }
-  }, [supplier, suppliers]);
+  const [loading, setLoading] = useState(false);
 
   function analyze() {
-    if (!product || !supplier) {
-      return;
-    }
+    setLoading(true);
+    setSubmitted(null);
+    setTimeout(() => {
+      setSubmitted({ product, supplier, quantity, temp, arrival });
+      setLoading(false);
+    }, 1600);
 
-    const palletQuantity = Number(quantity);
-    if (!Number.isFinite(palletQuantity) || palletQuantity <= 0) {
-      return;
-    }
-
-    const nextSubmitted = {
-      product,
-      supplier,
-      quantity,
-      temp,
-      arrival,
-    };
-
-    setSubmitted(nextSubmitted);
-    procurementEvaluation.mutate({
-      product_name: product,
-      pallet_quantity: palletQuantity,
-      month: formatMonth(arrival),
-    });
   }
 
-  const procurementOptionsLoading = productsLoading || suppliersLoading;
-  const procurementOptionsError = productsError || suppliersError;
-  const canAnalyze =
-    !procurementOptionsLoading &&
-    !procurementOptionsError &&
-    !procurementEvaluation.isPending &&
-    products.length > 0 &&
-    suppliers.length > 0 &&
-    Boolean(product) &&
-    Boolean(supplier);
-
-  const recommendation = procurementEvaluation.data;
-  const loading = procurementEvaluation.isPending;
-  const evaluationError = procurementEvaluation.error;
-  const riskTone = getRiskTone(recommendation?.risk_level);
-  const recommendationTone = getRecommendationTone(recommendation?.decision);
-  const confidencePercent = formatPercent(recommendation?.confidence, true);
-  const recommendationErrorMessage =
-    evaluationError instanceof ApiError
-      ? getApiErrorMessage(evaluationError)
-      : evaluationError?.message;
+  const approved = true;
 
   return (
     <AppLayout>
-      <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
-        <Card className="h-fit">
-          <CardContent className="p-6 space-y-5">
-            <div className="flex items-center gap-3">
-              <div className="size-10 rounded-xl bg-gradient-to-br from-primary to-teal text-primary-foreground grid place-items-center shadow-lg shadow-primary/20">
-                <Package className="size-5" />
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,460px)_minmax(0,1fr)]">
+        {/* ─── LEFT: Prompt-style Procurement Request ─── */}
+        <Card className="h-fit overflow-hidden">
+          <div className="px-6 pt-6 pb-4 border-b border-border/60 bg-gradient-to-b from-muted/40 to-transparent">
+            <div className="flex items-center gap-2">
+              <span className="size-1.5 rounded-full bg-primary shadow-[0_0_10px_color-mix(in_oklab,var(--color-primary)_70%,transparent)]" />
+              <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-primary">
+                New procurement intent
+              </span>
+            </div>
+            <h2 className="mt-2 text-[22px] font-bold font-[family-name:var(--font-heading)] tracking-tight text-foreground">
+              Draft AI request
+            </h2>
+            <p className="mt-1 text-[13px] text-muted-foreground leading-relaxed">
+              Compose the request below. The Copilot will reason across capacity, cold-chain, expiry, and demand forecasts.
+            </p>
+          </div>
+
+          <CardContent className="p-6 space-y-6">
+            {/* Natural-language prompt */}
+            <div>
+              <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground mb-3">
+                The request
               </div>
-              <div>
-                <div className="text-xl font-bold font-[family-name:var(--font-heading)]">
-                  Procurement Request
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Fill details to get an AI recommendation
-                </p>
+              <div className="text-[17px] leading-[1.85] font-light text-foreground/85 font-[family-name:var(--font-heading)]">
+                Procure{" "}
+                <InlineNumberInput
+                  id="quantity"
+                  value={quantity}
+                  onChange={setQuantity}
+                  placeholder="0"
+                  width="w-20"
+                />{" "}
+                units of{" "}
+                <InlineSelect id="product" value={product} onChange={setProduct} options={products} />
+                {" "}from{" "}
+                <InlineSelect id="supplier" value={supplier} onChange={setSupplier} options={suppliers} />
+                , arriving{" "}
+                <InlineDateInput id="arrival" value={arrival} onChange={setArrival} />{" "}
+                at{" "}
+                <InlineSelect id="temp" value={temp} onChange={setTemp} options={temps} />.
               </div>
             </div>
 
-            <div className="space-y-4">
-              <div className="space-y-1.5">
-                <Label
-                  htmlFor="product"
-                  className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
-                >
-                  Product
-                </Label>
-                <div className="relative">
-                  <Box className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                  <select
-                    id="product"
-                    value={product}
-                    onChange={(e) => setProduct(e.target.value)}
-                    disabled={productsLoading || Boolean(productsError) || products.length === 0}
-                    className="w-full h-9 pl-9 pr-3 rounded-md border border-input bg-transparent text-sm appearance-none focus:outline-none focus:ring-1 focus:ring-ring"
-                  >
-                    {productsLoading && <option value="">Loading products...</option>}
-                    {!productsLoading && productsError && (
-                      <option value="">Unable to load products</option>
-                    )}
-                    {!productsLoading && !productsError && products.length === 0 && (
-                      <option value="">No products available</option>
-                    )}
-                    {products.map((item) => (
-                      <option key={item.id} value={item.name}>
-                        {item.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                {productsError && (
-                  <p className="text-xs text-destructive mt-1">
-                    Failed to load products from the backend.
-                  </p>
+            {/* Auto-detected chips */}
+            <div>
+              <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground mb-2 flex items-center gap-1.5">
+                <Sparkles className="size-3 text-primary" />
+                Copilot detected
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {temp.includes("-70") || temp.includes("-80") ? (
+                  <Badge variant="outline" className="text-teal border-teal/40 bg-teal/10 gap-1">
+                    <Snowflake className="size-3" /> Deep Freeze Chain
+                  </Badge>
+                ) : temp.includes("-20") ? (
+                  <Badge variant="outline" className="text-info border-info/40 bg-info/10 gap-1">
+                    <Snowflake className="size-3" /> Frozen Chain
+                  </Badge>
+                ) : temp.includes("2-8") ? (
+                  <Badge variant="outline" className="text-primary border-primary/40 bg-primary/10 gap-1">
+                    <Thermometer className="size-3" /> Cold Chain
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-muted-foreground border-border bg-muted/50 gap-1">
+                    <Thermometer className="size-3" /> Ambient
+                  </Badge>
                 )}
-              </div>
-
-              <div className="space-y-1.5">
-                <Label
-                  htmlFor="supplier"
-                  className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
-                >
-                  Supplier
-                </Label>
-                <div className="relative">
-                  <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                  <select
-                    id="supplier"
-                    value={supplier}
-                    onChange={(e) => setSupplier(e.target.value)}
-                    disabled={suppliersLoading || Boolean(suppliersError) || suppliers.length === 0}
-                    className="w-full h-9 pl-9 pr-3 rounded-md border border-input bg-transparent text-sm appearance-none focus:outline-none focus:ring-1 focus:ring-ring"
-                  >
-                    {suppliersLoading && <option value="">Loading suppliers...</option>}
-                    {!suppliersLoading && suppliersError && (
-                      <option value="">Unable to load suppliers</option>
-                    )}
-                    {!suppliersLoading && !suppliersError && suppliers.length === 0 && (
-                      <option value="">No suppliers available</option>
-                    )}
-                    {suppliers.map((item) => (
-                      <option key={item.id} value={item.name}>
-                        {item.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                {suppliersError && (
-                  <p className="text-xs text-destructive mt-1">
-                    Failed to load suppliers from the backend.
-                  </p>
+                {daysUntil(arrival) <= 14 && (
+                  <Badge variant="outline" className="text-warning-foreground border-warning/40 bg-warning/10 gap-1">
+                    <AlertTriangle className="size-3" /> Short Lead Time · {daysUntil(arrival)}d
+                  </Badge>
                 )}
+                <Badge variant="outline" className="text-success border-success/40 bg-success/10 gap-1">
+                  <ShieldCheck className="size-3" /> GxP validated supplier
+                </Badge>
               </div>
+            </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label
-                    htmlFor="quantity"
-                    className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
-                  >
-                    Quantity
-                  </Label>
-                  <Input
-                    id="quantity"
-                    type="number"
-                    value={quantity}
-                    onChange={(e) => setQuantity(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label
-                    htmlFor="arrival"
-                    className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
-                  >
-                    Arrival Date
-                  </Label>
-                  <div className="relative">
-                    <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                    <Input
-                      id="arrival"
-                      type="date"
-                      value={arrival}
-                      onChange={(e) => setArrival(e.target.value)}
-                      className="pl-9"
-                    />
-                  </div>
-                </div>
-              </div>
+            <Button
+              onClick={analyze}
+              disabled={loading}
+              className="w-full h-11 bg-gradient-to-r from-primary to-teal hover:opacity-95 shadow-lg shadow-primary/20 group"
+            >
+              <BrainCircuit className="size-4 mr-2" />
+              {loading ? "Analyzing…" : "Analyze procurement"}
+              <ArrowRight className="size-4 ml-2 transition-transform group-hover:translate-x-0.5" />
+            </Button>
 
-              <div className="space-y-1.5">
-                <Label
-                  htmlFor="temp"
-                  className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
-                >
-                  Temperature Requirement
-                </Label>
-                <div className="relative">
-                  <Thermometer className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                  <select
-                    id="temp"
-                    value={temp}
-                    onChange={(e) => setTemp(e.target.value)}
-                    className="w-full h-9 pl-9 pr-3 rounded-md border border-input bg-transparent text-sm appearance-none focus:outline-none focus:ring-1 focus:ring-ring"
-                  >
-                    {temps.map((item) => (
-                      <option key={item} value={item}>
-                        {item}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {temp.includes("-70") || temp.includes("-80") ? (
-                    <Badge variant="outline" className="text-teal border-teal/40 bg-teal/10 gap-1">
-                      <Snowflake className="size-3" /> Deep Freeze Chain
-                    </Badge>
-                  ) : temp.includes("-20") ? (
-                    <Badge variant="outline" className="text-info border-info/40 bg-info/10 gap-1">
-                      <Snowflake className="size-3" /> Frozen Chain
-                    </Badge>
-                  ) : temp.includes("2-8") ? (
-                    <Badge variant="outline" className="text-primary border-primary/40 bg-primary/10 gap-1">
-                      <Thermometer className="size-3" /> Cold Chain
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-muted-foreground border-border bg-muted/50 gap-1">
-                      <Thermometer className="size-3" /> Ambient
-                    </Badge>
-                  )}
-                  {daysUntil(arrival) <= 14 && (
-                    <Badge
-                      variant="outline"
-                      className="text-warning-foreground border-warning/40 bg-warning/10 gap-1"
-                    >
-                      <AlertTriangle className="size-3" /> Short Lead Time
-                    </Badge>
-                  )}
-                </div>
-              </div>
-
-              <Button
-                onClick={analyze}
-                disabled={!canAnalyze}
-                className="w-full bg-gradient-to-r from-primary to-teal hover:opacity-95 shadow-lg shadow-primary/20"
-              >
-                <BrainCircuit className="size-4 mr-2" />
-                {loading ? "Analyzing..." : procurementOptionsLoading ? "Loading Options..." : "Analyze Procurement"}
-              </Button>
-              {procurementOptionsError && (
-                <p className="text-xs text-destructive">
-                  Procurement form options could not be loaded. Please refresh and try again.
-                </p>
-              )}
-              {recommendationErrorMessage && (
-                <p className="text-xs text-destructive">
-                  {recommendationErrorMessage}
-                </p>
-              )}
+            <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-2 border-t border-border/50">
+              <span className="inline-flex items-center gap-1.5">
+                <Lock className="size-3" /> GxP · HIPAA · GDPR
+              </span>
+              <span>Draft auto-saves</span>
             </div>
           </CardContent>
         </Card>
 
+        {/* ─── RIGHT: AI Copilot canvas ─── */}
         <div className="space-y-4">
-          <Card>
-            <CardContent className="p-5 flex items-start gap-3">
-              <div className="size-10 rounded-xl bg-gradient-to-br from-primary to-teal text-primary-foreground grid place-items-center shrink-0 shadow-lg shadow-primary/20">
-                <Sparkles className="size-5" />
-              </div>
-              <div className="text-sm leading-relaxed">
-                <div className="text-xl font-bold font-[family-name:var(--font-heading)]">
-                  AI Procurement Copilot
-                </div>
-                <p className="text-sm text-muted-foreground mt-1">
-                  I analyze warehouse capacity, expiry risk, temperature chain integrity, and
-                  demand forecasts to recommend optimal storage zones.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          {!submitted && !loading && <CopilotStandby />}
 
           {submitted && (
             <Card className="bg-secondary/40">
@@ -372,110 +220,114 @@ function AssistantPage() {
                   <p className="text-muted-foreground mt-1">
                     Requesting <span className="text-foreground font-medium">{submitted.quantity} units</span> of{" "}
                     <span className="text-foreground font-medium">{submitted.product}</span> from{" "}
-                    <span className="text-foreground font-medium">{submitted.supplier}</span>,
-                    arriving <span className="text-foreground font-medium">{submitted.arrival}</span>.
+                    <span className="text-foreground font-medium">{submitted.supplier}</span>, arriving{" "}
+                    <span className="text-foreground font-medium">{submitted.arrival}</span>.
                   </p>
                 </div>
               </CardContent>
             </Card>
           )}
 
-          {loading && (
-            <Card>
-              <CardContent className="p-5 flex items-center gap-3">
-                <div className="size-10 rounded-xl bg-gradient-to-br from-primary to-teal text-primary-foreground grid place-items-center animate-pulse">
-                  <Sparkles className="size-5" />
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  Analyzing capacity, demand forecasts, and cold-chain integrity...
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {loading && <AiThinking />}
 
-          {submitted && recommendation && !loading && (
-            <Card className="overflow-hidden border-success/40">
+          {submitted && !loading && (
+            <Card className="overflow-hidden border-success/40 animate-in fade-in slide-in-from-bottom-2 duration-500">
+
+
+              {/* Header */}
               <div className="bg-gradient-to-r from-success/20 via-success/5 to-transparent px-6 py-5 flex items-center justify-between border-b border-success/30">
                 <div className="flex items-center gap-3">
-                  <div className={`size-12 rounded-full grid place-items-center shadow-lg ${recommendationTone.badgeClass}`}>
+                  <div className="size-12 rounded-full bg-success text-success-foreground grid place-items-center shadow-lg shadow-success/30">
                     <CheckCircle2 className="size-6" />
                   </div>
                   <div>
-                    <div className="text-xs uppercase tracking-wider text-success font-semibold">
-                      Recommendation
-                    </div>
-                    <div className="text-xl font-bold">{recommendation.decision}</div>
+                    <div className="text-xs uppercase tracking-wider text-success font-semibold">Recommendation</div>
+                    <div className="text-xl font-bold">APPROVED</div>
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-2">
-                  <StatusBadge label={`Risk: ${recommendation.risk_level}`} tone={riskTone} />
+                  <StatusBadge label="Risk: LOW" tone="success" />
                   <Badge variant="outline" className="text-primary border-primary/40 bg-primary/10 gap-1">
-                    <BrainCircuit className="size-3" /> {confidencePercent} Confidence
+                    <BrainCircuit className="size-3" /> 94% Confidence
                   </Badge>
                 </div>
               </div>
 
               <CardContent className="p-6 space-y-6">
+                {/* Metrics Grid */}
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   <MetricCard
                     icon={Warehouse}
                     label="Current Occupancy"
-                    value={formatPercent(recommendation.current_occupancy_percent)}
-                    sub={`${formatPercent(recommendation.current_occupancy_percent)} current warehouse utilization`}
-                    bar={recommendation.current_occupancy_percent}
+                    value="72%"
+                    sub="1,080 / 1,500 pallets"
+                    bar={72}
                     barTone="primary"
                   />
                   <MetricCard
                     icon={TrendingUp}
                     label="Forecast Occupancy"
-                    value={formatPercent(recommendation.projected_occupancy_percent)}
-                    sub={`${formatPercent(recommendation.projected_occupancy_percent)} after this procurement`}
-                    bar={recommendation.projected_occupancy_percent}
+                    value="84%"
+                    sub="1,260 / 1,500 pallets"
+                    bar={84}
                     barTone="teal"
                   />
                   <MetricCard
                     icon={Warehouse}
                     label="Recommended Zone"
-                    value={recommendation.recommended_zone}
-                    sub={getBadgeValue(recommendation.badges, "Zone Type")}
+                    value="Cold Storage B"
+                    sub="2-8°C capacity"
                   />
                   <MetricCard
                     icon={AlertTriangle}
                     label="Risk Level"
-                    value={recommendation.risk_level}
-                    valueTone={getRiskValueTone(recommendation.risk_level)}
-                    sub={riskLevelDescription(recommendation.risk_level)}
+                    value="LOW"
+                    valueTone="success"
+                    sub="Under 90% safety threshold"
                   />
                   <MetricCard
                     icon={BrainCircuit}
                     label="Confidence Score"
-                    value={confidencePercent}
+                    value="94%"
                     valueTone="primary"
-                    sub={`${recommendation.inventory_units.toLocaleString()} units currently in inventory`}
+                    sub="Based on 6 months of data"
                   />
                   <MetricCard
                     icon={Thermometer}
                     label="Temperature Fit"
-                    value={formatTemperatureFit(recommendation.temperature_fit)}
-                    valueTone={recommendation.temperature_fit === "MATCH" ? "teal" : "warning"}
-                    sub={getBadgeValue(recommendation.badges, "Temperature Fit")}
+                    value="Match"
+                    valueTone="teal"
+                    sub="Cold chain validated"
                   />
                 </div>
 
+                {/* Cold Chain & Expiry Indicators */}
                 <div className="flex flex-wrap gap-2">
-                  {recommendation.badges.map((badge) => (
-                    <RecommendationBadge key={badge} badge={badge} />
-                  ))}
+                  <Badge variant="outline" className="text-primary border-primary/40 bg-primary/10 gap-1">
+                    <Thermometer className="size-3" /> Cold Chain: Verified
+                  </Badge>
+                  <Badge variant="outline" className="text-success border-success/40 bg-success/10 gap-1">
+                    <Snowflake className="size-3" /> Continuous Monitoring
+                  </Badge>
+                  <Badge variant="outline" className="text-teal border-teal/40 bg-teal/10 gap-1">
+                    <ShieldCheck className="size-3" /> GxP Compliant
+                  </Badge>
+                  <Badge variant="outline" className="text-warning-foreground border-warning/40 bg-warning/10 gap-1">
+                    <AlertTriangle className="size-3" /> Expiry Risk: Low
+                  </Badge>
+                  <Badge variant="outline" className="text-muted-foreground border-border bg-muted/50 gap-1">
+                    <CalendarDays className="size-3" /> Shelf Life: 14 mo
+                  </Badge>
                 </div>
 
+                {/* Reasoning */}
                 <div className="rounded-xl border border-border bg-muted/40 p-5 space-y-3">
-                  <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    Reasoning
-                  </div>
+                  <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Reasoning</div>
                   <div className="grid gap-3">
-                    {recommendation.reasoning.map((item) => (
-                      <ReasonItem key={item} icon={iconForReason(item)} text={item} />
-                    ))}
+                    <ReasonItem icon={Warehouse} text="Clinical Trial X ends next month, freeing 30 pallet spaces in Cold Storage B." />
+                    <ReasonItem icon={TrendingUp} text="Forecast occupancy stays under the 90% safety threshold even after this shipment." />
+                    <ReasonItem icon={Thermometer} text="Arrival window aligns with cold-chain capacity rotation schedule." />
+                    <ReasonItem icon={ShieldCheck} text="Supplier cold-chain audit passed (last reviewed 2026-05-12)." />
                   </div>
                 </div>
               </CardContent>
@@ -537,14 +389,8 @@ function MetricCard({
         )}
       </div>
       <div>
-        <div className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-          {label}
-        </div>
-        {valueTone === "default" && (
-          <div className="text-lg font-bold font-[family-name:var(--font-heading)] mt-0.5">
-            {value}
-          </div>
-        )}
+        <div className="text-sm font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
+        {valueTone === "default" && <div className="text-lg font-bold font-[family-name:var(--font-heading)] mt-0.5">{value}</div>}
         {sub && <div className="text-sm text-muted-foreground mt-0.5">{sub}</div>}
       </div>
       {bar !== undefined && (
@@ -552,7 +398,7 @@ function MetricCard({
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-primary/10">
             <div
               className={`h-full rounded-full ${barColor[barTone]} transition-all`}
-              style={{ width: `${Math.max(0, Math.min(bar, 100))}%` }}
+              style={{ width: `${bar}%` }}
             />
           </div>
         </div>
@@ -578,182 +424,284 @@ function ReasonItem({
   );
 }
 
-function RecommendationBadge({
-  badge,
-}: {
-  badge: string;
-}) {
-  const icon = iconForBadge(badge);
-  const className = classNameForBadge(badge);
-  const Icon = icon;
-
+function AiThinking() {
+  const steps = [
+    "Parsing procurement request…",
+    "Scanning warehouse capacity across 4 zones…",
+    "Validating cold-chain compatibility…",
+    "Cross-referencing 6-month demand forecast…",
+    "Composing recommendation…",
+  ];
   return (
-    <Badge variant="outline" className={className}>
-      <Icon className="size-3" /> {badge}
-    </Badge>
+    <Card className="overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
+      <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-primary to-transparent bg-[length:200%_100%] animate-[ai-shimmer_1.6s_linear_infinite]" />
+      <CardContent className="p-5">
+        <div className="flex items-center gap-3">
+          <div className="relative size-11 shrink-0">
+            <div className="absolute inset-0 rounded-2xl border-2 border-primary/25 border-t-primary ai-orbit" />
+            <div className="absolute inset-1 rounded-xl bg-gradient-to-br from-primary to-teal grid place-items-center shadow-lg shadow-primary/25">
+              <Sparkles className="size-4 text-primary-foreground" />
+            </div>
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-primary">AI Copilot thinking</div>
+            <div className="text-[15px] font-semibold ai-shimmer-text">
+              Analyzing capacity, demand, and cold-chain integrity
+            </div>
+          </div>
+        </div>
+        <ul className="mt-4 grid gap-2">
+          {steps.map((s, i) => (
+            <li
+              key={s}
+              className="flex items-center gap-2.5 text-[12.5px] text-muted-foreground opacity-0 animate-in fade-in slide-in-from-left-1"
+              style={{ animationDelay: `${i * 140}ms`, animationDuration: "400ms", animationFillMode: "forwards" }}
+            >
+              <span className="size-1.5 rounded-full bg-primary/70 animate-pulse" />
+              <span>{s}</span>
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
   );
-}
-
-function formatMonth(dateStr: string): string {
-  const date = new Date(`${dateStr}T00:00:00`);
-  if (Number.isNaN(date.getTime())) {
-    return "Unknown";
-  }
-
-  return date.toLocaleString("en-US", { month: "long" });
-}
-
-function formatPercent(value: number | undefined, fromUnit = false): string {
-  if (typeof value !== "number" || Number.isNaN(value)) {
-    return "N/A";
-  }
-
-  const percentage = fromUnit ? value * 100 : value;
-  return `${Math.round(percentage)}%`;
-}
-
-function formatTemperatureFit(value: ProcurementAIResponse["temperature_fit"]): string {
-  return value === "MATCH" ? "Match" : "Mismatch";
-}
-
-function getBadgeValue(badges: string[], prefix: string): string {
-  const match = badges.find((badge) => badge.startsWith(`${prefix}:`));
-  if (!match) {
-    return "Not provided";
-  }
-
-  return match.split(":").slice(1).join(":").trim();
-}
-
-function getRiskTone(riskLevel: ProcurementAIResponse["risk_level"] | undefined) {
-  if (riskLevel === "HIGH") {
-    return "destructive";
-  }
-
-  if (riskLevel === "MEDIUM") {
-    return "warning";
-  }
-
-  return "success";
-}
-
-function getRiskValueTone(riskLevel: ProcurementAIResponse["risk_level"]) {
-  if (riskLevel === "HIGH") {
-    return "warning";
-  }
-
-  if (riskLevel === "MEDIUM") {
-    return "primary";
-  }
-
-  return "success";
-}
-
-function riskLevelDescription(riskLevel: ProcurementAIResponse["risk_level"]): string {
-  if (riskLevel === "HIGH") {
-    return "Recommendation requires capacity or temperature remediation";
-  }
-
-  if (riskLevel === "MEDIUM") {
-    return "Recommendation requires additional operational review";
-  }
-
-  return "Recommendation is within current operating thresholds";
-}
-
-function getRecommendationTone(decision: ProcurementAIResponse["decision"] | undefined) {
-  if (decision === "REJECT") {
-    return {
-      badgeClass: "bg-destructive/90 text-destructive-foreground shadow-destructive/30",
-    };
-  }
-
-  if (decision === "REVIEW") {
-    return {
-      badgeClass: "bg-warning text-warning-foreground shadow-warning/30",
-    };
-  }
-
-  return {
-    badgeClass: "bg-success text-success-foreground shadow-success/30",
-  };
-}
-
-function iconForReason(reason: string) {
-  const text = reason.toLowerCase();
-
-  if (text.includes("temperature")) {
-    return Thermometer;
-  }
-
-  if (text.includes("shipment")) {
-    return TrendingUp;
-  }
-
-  if (text.includes("inventory") || text.includes("warehouse") || text.includes("zone")) {
-    return Warehouse;
-  }
-
-  return ShieldCheck;
-}
-
-function iconForBadge(badge: string) {
-  const text = badge.toLowerCase();
-
-  if (text.includes("temperature")) {
-    return Thermometer;
-  }
-
-  if (text.includes("shelf life")) {
-    return CalendarDays;
-  }
-
-  if (text.includes("shipment")) {
-    return AlertTriangle;
-  }
-
-  if (text.includes("zone")) {
-    return Warehouse;
-  }
-
-  return ShieldCheck;
-}
-
-function classNameForBadge(badge: string): string {
-  const text = badge.toLowerCase();
-
-  if (text.includes("mismatch") || text.includes("pending")) {
-    return "text-warning-foreground border-warning/40 bg-warning/10 gap-1";
-  }
-
-  if (text.includes("match") || text.includes("no incoming")) {
-    return "text-success border-success/40 bg-success/10 gap-1";
-  }
-
-  if (text.includes("zone")) {
-    return "text-primary border-primary/40 bg-primary/10 gap-1";
-  }
-
-  return "text-muted-foreground border-border bg-muted/50 gap-1";
-}
-
-function getApiErrorMessage(error: ApiError): string {
-  if (typeof error.body?.detail === "string") {
-    return error.body.detail;
-  }
-
-  if (Array.isArray(error.body?.detail)) {
-    return error.body.detail.join(", ");
-  }
-
-  if (typeof error.body?.message === "string") {
-    return error.body.message;
-  }
-
-  return error.message;
 }
 
 function daysUntil(dateStr: string): number {
   const diff = new Date(dateStr).getTime() - Date.now();
   return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
 }
+
+/* ─── Inline prompt controls ─── */
+
+function InlineSelect({
+  id,
+  value,
+  onChange,
+  options,
+}: {
+  id: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: readonly string[];
+}) {
+  return (
+    <span className="relative inline-block align-baseline">
+      <select
+        id={id}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="appearance-none bg-primary/8 hover:bg-primary/12 focus:bg-primary/14 border-b-2 border-primary/40 hover:border-primary focus:border-primary focus:outline-none rounded-t-md px-2 py-0.5 text-primary font-semibold cursor-pointer transition-colors max-w-[240px] truncate"
+      >
+        {options.map((o) => (
+          <option key={o} value={o} className="text-foreground">
+            {o}
+          </option>
+        ))}
+      </select>
+    </span>
+  );
+}
+
+function InlineNumberInput({
+  id,
+  value,
+  onChange,
+  placeholder,
+  width = "w-20",
+}: {
+  id: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  width?: string;
+}) {
+  return (
+    <input
+      id={id}
+      type="number"
+      value={value}
+      placeholder={placeholder}
+      onChange={(e) => onChange(e.target.value)}
+      className={`${width} bg-primary/8 hover:bg-primary/12 focus:bg-primary/14 border-b-2 border-primary/40 hover:border-primary focus:border-primary focus:outline-none rounded-t-md px-2 py-0.5 text-primary font-semibold text-center tabular-nums transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
+    />
+  );
+}
+
+function InlineDateInput({
+  id,
+  value,
+  onChange,
+}: {
+  id: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <input
+      id={id}
+      type="date"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="bg-primary/8 hover:bg-primary/12 focus:bg-primary/14 border-b-2 border-primary/40 hover:border-primary focus:border-primary focus:outline-none rounded-t-md px-2 py-0.5 text-primary font-semibold transition-colors"
+    />
+  );
+}
+
+/* ─── Copilot standby canvas (pharma navy) ─── */
+
+function CopilotStandby() {
+  const capabilities = [
+    { icon: Warehouse, label: "Capacity scanner", status: "Ready" },
+    { icon: Snowflake, label: "Cold-chain validator", status: "Ready" },
+    { icon: TrendingUp, label: "Demand forecaster", status: "Ready" },
+    { icon: CalendarDays, label: "Expiry monitor", status: "Ready" },
+  ];
+
+  return (
+    <div
+      className="relative overflow-hidden rounded-2xl min-h-[560px] xl:min-h-[640px] border shadow-[0_20px_60px_-30px_color-mix(in_oklab,#0b1e3a_75%,transparent)] animate-in fade-in duration-500"
+      style={{
+        background:
+          "radial-gradient(120% 100% at 100% 0%, color-mix(in oklab, #0f2c52 92%, transparent) 0%, #0a1f3d 55%, #071528 100%)",
+        borderColor: "color-mix(in oklab, #ffffff 10%, transparent)",
+      }}
+    >
+      {/* Ambient glows */}
+      <div
+        aria-hidden
+        className="absolute top-[-15%] right-[-10%] size-[520px] rounded-full blur-3xl opacity-40 pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(circle, color-mix(in oklab, var(--color-primary) 60%, transparent) 0%, transparent 70%)",
+        }}
+      />
+      <div
+        aria-hidden
+        className="absolute bottom-[-20%] left-[-10%] size-[420px] rounded-full blur-3xl opacity-30 pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(circle, color-mix(in oklab, var(--color-teal) 55%, transparent) 0%, transparent 70%)",
+        }}
+      />
+      {/* Subtle grid */}
+      <div
+        aria-hidden
+        className="absolute inset-0 opacity-[0.06] pointer-events-none"
+        style={{
+          backgroundImage:
+            "radial-gradient(circle, #ffffff 1px, transparent 1px)",
+          backgroundSize: "28px 28px",
+        }}
+      />
+
+      {/* Top status bar */}
+      <div className="relative flex items-center justify-between px-6 pt-5 text-[10px] font-mono uppercase tracking-[0.18em] text-white/45">
+        <span className="inline-flex items-center gap-2">
+          <span className="relative flex size-1.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-70" />
+            <span className="relative inline-flex size-1.5 rounded-full bg-emerald-400" />
+          </span>
+          Copilot · online
+        </span>
+        <span className="inline-flex items-center gap-4">
+          <span>Model · pharma-supply-v2.4</span>
+          <span className="hidden sm:inline">Latency · 42ms</span>
+        </span>
+      </div>
+
+      {/* Center hero */}
+      <div className="relative flex flex-col items-center text-center px-8 pt-14 pb-10">
+        <div className="relative mb-7">
+          <div
+            className="absolute -inset-6 rounded-full border ai-orbit"
+            style={{ borderColor: "color-mix(in oklab, var(--color-primary) 35%, transparent)" }}
+          />
+          <div
+            className="absolute -inset-3 rounded-full border"
+            style={{ borderColor: "color-mix(in oklab, var(--color-teal) 25%, transparent)" }}
+          />
+          <div
+            className="relative size-20 rounded-2xl grid place-items-center backdrop-blur-xl border"
+            style={{
+              background:
+                "linear-gradient(135deg, color-mix(in oklab, var(--color-primary) 65%, transparent), color-mix(in oklab, var(--color-teal) 55%, transparent))",
+              borderColor: "color-mix(in oklab, #ffffff 20%, transparent)",
+              boxShadow:
+                "0 10px 40px -10px color-mix(in oklab, var(--color-primary) 60%, transparent)",
+            }}
+          >
+            <Sparkles className="size-8 text-white" />
+          </div>
+        </div>
+
+        <div className="text-[10px] font-bold uppercase tracking-[0.28em] text-emerald-300/80 mb-2">
+          Procurement Copilot
+        </div>
+        <h3 className="text-white text-[26px] font-bold font-[family-name:var(--font-heading)] tracking-tight">
+          Standing by
+        </h3>
+        <p className="mt-2 max-w-md text-[13.5px] leading-relaxed text-white/60">
+          Copilot is monitoring warehouse telemetry in real time. Complete your request on the left to run
+          capacity, cold-chain, expiry, and demand analysis.
+        </p>
+
+        {/* Capability grid */}
+        <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full max-w-lg">
+          {capabilities.map((c) => {
+            const Icon = c.icon;
+            return (
+              <div
+                key={c.label}
+                className="group flex items-center justify-between rounded-xl border px-3.5 py-2.5 transition-colors hover:bg-white/[0.04]"
+                style={{
+                  background: "color-mix(in oklab, #ffffff 3%, transparent)",
+                  borderColor: "color-mix(in oklab, #ffffff 8%, transparent)",
+                }}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span
+                    className="size-7 rounded-lg grid place-items-center shrink-0 transition-colors"
+                    style={{
+                      background:
+                        "color-mix(in oklab, var(--color-primary) 20%, transparent)",
+                      color: "color-mix(in oklab, var(--color-primary) 80%, #ffffff)",
+                    }}
+                  >
+                    <Icon className="size-3.5" />
+                  </span>
+                  <span className="text-[12.5px] text-white/80 truncate text-left">{c.label}</span>
+                </div>
+                <span className="inline-flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-emerald-300/90">
+                  <span className="size-1 rounded-full bg-emerald-400" />
+                  {c.status}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Bottom telemetry */}
+      <div className="relative px-6 pb-5">
+        <div className="h-px w-full bg-gradient-to-r from-transparent via-white/15 to-transparent mb-3" />
+        <div className="flex flex-wrap items-center justify-between gap-3 text-[10px] font-mono uppercase tracking-[0.18em] text-white/45">
+          <span className="inline-flex items-center gap-1.5">
+            <Radio className="size-3" />
+            4 zones · 12 sensors
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <Activity className="size-3" />
+            Last scan · 2s ago
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <Lock className="size-3" />
+            GxP · HIPAA · GDPR
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+

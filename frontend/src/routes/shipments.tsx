@@ -2,17 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useMemo, useState } from "react";
 import { Search, Truck, CheckCircle2, AlertTriangle, Clock } from "lucide-react";
-import { useShipments } from "@/lib/api/hooks";
+import { shipments } from "@/lib/mock-data";
 import { StatusBadge, statusTone } from "@/components/StatusBadge";
 import { AiInsight } from "@/components/AiInsight";
 
@@ -20,10 +13,7 @@ export const Route = createFileRoute("/shipments")({
   head: () => ({
     meta: [
       { title: "Shipments — AI Clinical Supply Chain Copilot" },
-      {
-        name: "description",
-        content: "Track incoming pharmaceutical shipments with live statuses.",
-      },
+      { name: "description", content: "Track incoming pharmaceutical shipments with live statuses." },
     ],
   }),
   component: ShipmentsPage,
@@ -35,19 +25,16 @@ function ShipmentsPage() {
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<(typeof STATUSES)[number]>("All");
 
-  const { data: shipmentsData, isLoading, error } = useShipments();
-  const shipments = shipmentsData ?? [];
-
   const filtered = useMemo(() => {
     const term = q.toLowerCase();
     return shipments.filter(
       (s) =>
         (status === "All" || s.status === status) &&
-        (s.shipment_number.toLowerCase().includes(term) ||
-          s.supplier_name.toLowerCase().includes(term) ||
-          s.product_name.toLowerCase().includes(term)),
+        (s.id.toLowerCase().includes(term) ||
+          s.supplier.toLowerCase().includes(term) ||
+          s.product.toLowerCase().includes(term)),
     );
-  }, [q, status, shipments]);
+  }, [q, status]);
 
   const counts = useMemo(
     () => ({
@@ -56,7 +43,7 @@ function ShipmentsPage() {
       Delayed: shipments.filter((s) => s.status === "Delayed").length,
       Processing: shipments.filter((s) => s.status === "Processing").length,
     }),
-    [shipments],
+    [],
   );
 
   return (
@@ -120,58 +107,35 @@ function ShipmentsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading ? (
-                  Array.from({ length: 6 }).map((_, index) => (
-                    <TableRow key={index}>
-                      <TableCell colSpan={6} className="py-5">
-                        <div className="h-4 bg-muted rounded animate-pulse" />
+                {filtered.map((s) => {
+                  const delayed = s.status === "Delayed";
+                  return (
+                    <TableRow
+                      key={s.id}
+                      className={`cursor-pointer transition-colors ${
+                        delayed ? "bg-destructive/[0.03] hover:bg-destructive/[0.06]" : "hover:bg-muted/40"
+                      }`}
+                    >
+                      <TableCell className="font-mono text-xs relative">
+                        {delayed && (
+                          <span className="absolute left-0 top-2 bottom-2 w-0.5 rounded-full bg-destructive" />
+                        )}
+                        {s.id}
                       </TableCell>
+                      <TableCell className="font-medium">{s.supplier}</TableCell>
+                      <TableCell className="text-muted-foreground">{s.product}</TableCell>
+                      <TableCell className="text-right tabular-nums">{s.quantity.toLocaleString()}</TableCell>
+                      <TableCell className="tabular-nums">{s.arrival}</TableCell>
+                      <TableCell><StatusBadge label={s.status} tone={statusTone(s.status)} /></TableCell>
                     </TableRow>
-                  ))
-                ) : error ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center text-destructive py-10">
-                      Failed to load shipments. Please refresh the page or try again later.
-                    </TableCell>
-                  </TableRow>
-                ) : filtered.length === 0 ? (
+                  );
+                })}
+                {filtered.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
                       No shipments match your filters.
                     </TableCell>
                   </TableRow>
-                ) : (
-                  filtered.map((s) => {
-                    const delayed = s.status === "Delayed";
-                    return (
-                      <TableRow
-                        key={s.id}
-                        className={`cursor-pointer transition-colors ${
-                          delayed
-                            ? "bg-destructive/[0.03] hover:bg-destructive/[0.06]"
-                            : "hover:bg-muted/40"
-                        }`}
-                      >
-                        <TableCell className="font-mono text-xs relative">
-                          {delayed && (
-                            <span className="absolute left-0 top-2 bottom-2 w-0.5 rounded-full bg-destructive" />
-                          )}
-                          {s.shipment_number}
-                        </TableCell>
-                        <TableCell className="font-medium">{s.supplier_name}</TableCell>
-                        <TableCell className="text-muted-foreground">{s.product_name}</TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {s.quantity.toLocaleString()}
-                        </TableCell>
-                        <TableCell className="tabular-nums">
-                          {new Date(s.expected_arrival).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell>
-                          <StatusBadge label={s.status} tone={statusTone(s.status)} />
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
                 )}
               </TableBody>
             </Table>
@@ -207,9 +171,7 @@ function Stat({
         </span>
       </div>
       <div className="mt-4">
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          {label}
-        </div>
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</div>
         <div className="mt-1 text-[32px] leading-none font-bold font-[family-name:var(--font-heading)] tabular-nums tracking-tight">
           {value}
         </div>

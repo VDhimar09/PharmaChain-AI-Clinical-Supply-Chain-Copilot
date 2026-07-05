@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppLayout } from "@/components/AppLayout";
-import { useDashboardSummary } from "@/lib/api/hooks";
 import {
   Boxes,
   Warehouse,
@@ -23,8 +22,6 @@ import {
   Clock,
   Pill,
   Zap,
-  AlertCircle,
-  Loader2,
 } from "lucide-react";
 import {
   Area,
@@ -128,8 +125,7 @@ type Kpi = {
   spark: number[];
 };
 
-// Static mock KPI base with sparklines
-const mockKpis: Kpi[] = [
+const kpis: Kpi[] = [
   {
     label: "Total Inventory",
     value: "47,820",
@@ -184,58 +180,6 @@ const mockKpis: Kpi[] = [
   },
 ];
 
-/**
- * Update KPI cards with live backend data, preserving static sparklines.
- * Only replaces value, unit, and caption fields from backend metrics.
- * Keeps existing sparklines and deltas until historical analytics endpoint exists.
- */
-function updateKpisWithLiveData(data: any): Kpi[] {
-  if (!data) return mockKpis;
-
-  const updated = [...mockKpis];
-
-  // Update Total Inventory card
-  updated[0] = {
-    ...updated[0],
-    value:
-      (data.total_inventory_units / 1000)
-        .toLocaleString("en-US", {
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 1,
-        })
-        .replace(".0", "") + "k",
-    caption: `${data.available_inventory_units.toLocaleString()} available · ${data.reserved_inventory_units.toLocaleString()} reserved`,
-  };
-
-  // Update Warehouse Occupancy card
-  updated[1] = {
-    ...updated[1],
-    value: Math.round(data.warehouse_occupancy).toString(),
-    caption: `${data.warehouse_available_capacity.toLocaleString()} units available · ${data.warehouse_occupancy < 80 ? "healthy" : "approaching limit"}`,
-    positive: data.warehouse_occupancy < 80,
-  };
-
-  // Update Incoming Shipments card
-  updated[2] = {
-    ...updated[2],
-    value: data.incoming_shipments.toString(),
-    unit: data.incoming_shipments === 1 ? "pending" : "pending",
-    caption: `${data.delayed_shipments} delayed · ${data.outgoing_shipments} outgoing`,
-    positive: data.delayed_shipments === 0,
-  };
-
-  // Update Low Stock / Forecast Capacity card
-  updated[3] = {
-    ...updated[3],
-    value: data.low_stock_products.toString(),
-    unit: "items",
-    caption: `${data.procurement_requests} procurement requests`,
-    positive: data.low_stock_products < 15,
-  };
-
-  return updated;
-}
-
 function ExecutiveKpiCard({ kpi }: { kpi: Kpi }) {
   const Icon = kpi.icon;
   return (
@@ -262,7 +206,9 @@ function ExecutiveKpiCard({ kpi }: { kpi: Kpi }) {
           </span>
           <div
             className={`inline-flex items-center gap-0.5 text-[11px] font-bold tabular-nums px-2 py-0.5 rounded-full ${
-              kpi.positive ? "text-success bg-success/10" : "text-warning-foreground bg-warning/15"
+              kpi.positive
+                ? "text-success bg-success/10"
+                : "text-warning-foreground bg-warning/15"
             }`}
           >
             {kpi.up ? <ArrowUpRight className="size-3" /> : <ArrowDownRight className="size-3" />}
@@ -287,44 +233,6 @@ function ExecutiveKpiCard({ kpi }: { kpi: Kpi }) {
 
         <div className="mt-3 -mx-1">
           <Sparkline data={kpi.spark} color={kpi.stroke} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/**
- * Skeleton loader for KPI cards while data is loading.
- */
-function KpiCardSkeleton() {
-  return (
-    <div className="rounded-2xl border border-border/70 bg-card p-5 animate-pulse">
-      <div className="flex items-center justify-between">
-        <div className="size-9 rounded-xl bg-muted" />
-        <div className="h-6 w-16 rounded-full bg-muted" />
-      </div>
-      <div className="mt-5">
-        <div className="h-3 w-24 rounded bg-muted" />
-        <div className="mt-3 h-10 w-32 rounded bg-muted" />
-        <div className="mt-2 h-3 w-40 rounded bg-muted" />
-      </div>
-    </div>
-  );
-}
-
-/**
- * Error state for dashboard KPIs.
- */
-function KpiLoadError() {
-  return (
-    <div className="rounded-2xl border border-destructive/30 bg-destructive/[0.04] p-5">
-      <div className="flex items-start gap-3">
-        <AlertCircle className="size-5 text-destructive shrink-0 mt-0.5" />
-        <div>
-          <h3 className="text-sm font-semibold text-destructive">Failed to load dashboard</h3>
-          <p className="text-xs text-muted-foreground mt-1">
-            Could not connect to the backend. Showing mock data for demonstration.
-          </p>
         </div>
       </div>
     </div>
@@ -426,7 +334,9 @@ function AlertCard({ alert }: { alert: Alert }) {
     >
       <span className={`absolute left-0 top-0 bottom-0 w-1 ${t.bar}`} />
       <div className="flex items-start gap-3">
-        <div className={`size-9 rounded-lg grid place-items-center shrink-0 border ${t.chip}`}>
+        <div
+          className={`size-9 rounded-lg grid place-items-center shrink-0 border ${t.chip}`}
+        >
           <Icon className="size-4" />
         </div>
         <div className="min-w-0 flex-1">
@@ -515,7 +425,10 @@ const recos: Reco[] = [
   },
 ];
 
-const priorityChip: Record<Reco["priority"], { bg: string; text: string; dot: string }> = {
+const priorityChip: Record<
+  Reco["priority"],
+  { bg: string; text: string; dot: string }
+> = {
   P1: { bg: "bg-destructive/12", text: "text-destructive", dot: "bg-destructive" },
   P2: {
     bg: "bg-warning/15",
@@ -559,7 +472,9 @@ function RecoCard({ reco }: { reco: Reco }) {
           </h4>
         </div>
 
-        <p className="mt-3 text-[12.5px] text-muted-foreground leading-relaxed">{reco.rationale}</p>
+        <p className="mt-3 text-[12.5px] text-muted-foreground leading-relaxed">
+          {reco.rationale}
+        </p>
 
         <div className="mt-4 pt-4 border-t border-border/60 flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 text-[11.5px] text-foreground/80">
@@ -658,13 +573,7 @@ function RadialKpi({ kpi }: { kpi: OpKpi }) {
             barSize={10}
           >
             <defs>
-              <linearGradient
-                id={`grad-${kpi.label.replace(/\s/g, "")}`}
-                x1="0"
-                y1="0"
-                x2="1"
-                y2="1"
-              >
+              <linearGradient id={`grad-${kpi.label.replace(/\s/g, "")}`} x1="0" y1="0" x2="1" y2="1">
                 <stop offset="0%" stopColor={kpi.color} stopOpacity={1} />
                 <stop offset="100%" stopColor={kpi.color} stopOpacity={0.5} />
               </linearGradient>
@@ -783,27 +692,26 @@ const priorities: Priority[] = [
   },
 ];
 
-const pToneMap: Record<Priority["tone"], { ring: string; bar: string; chip: string; cta: string }> =
-  {
-    critical: {
-      ring: "border-destructive/30 hover:border-destructive/45",
-      bar: "bg-destructive",
-      chip: "bg-destructive/10 text-destructive border-destructive/25",
-      cta: "bg-destructive text-destructive-foreground hover:brightness-105",
-    },
-    warning: {
-      ring: "border-warning/35 hover:border-warning/55",
-      bar: "bg-warning",
-      chip: "bg-warning/15 text-warning-foreground border-warning/30",
-      cta: "bg-warning text-warning-foreground hover:brightness-105",
-    },
-    healthy: {
-      ring: "border-border/60 hover:border-primary/40",
-      bar: "bg-primary",
-      chip: "bg-success/12 text-success border-success/25",
-      cta: "bg-primary text-primary-foreground hover:brightness-105",
-    },
-  };
+const pToneMap: Record<Priority["tone"], { ring: string; bar: string; chip: string; cta: string }> = {
+  critical: {
+    ring: "border-destructive/30 hover:border-destructive/45",
+    bar: "bg-destructive",
+    chip: "bg-destructive/10 text-destructive border-destructive/25",
+    cta: "bg-destructive text-destructive-foreground hover:brightness-105",
+  },
+  warning: {
+    ring: "border-warning/35 hover:border-warning/55",
+    bar: "bg-warning",
+    chip: "bg-warning/15 text-warning-foreground border-warning/30",
+    cta: "bg-warning text-warning-foreground hover:brightness-105",
+  },
+  healthy: {
+    ring: "border-border/60 hover:border-primary/40",
+    bar: "bg-primary",
+    chip: "bg-success/12 text-success border-success/25",
+    cta: "bg-primary text-primary-foreground hover:brightness-105",
+  },
+};
 
 function PriorityCard({ p }: { p: Priority }) {
   const t = pToneMap[p.tone];
@@ -815,9 +723,7 @@ function PriorityCard({ p }: { p: Priority }) {
       <span className={`absolute left-0 top-0 bottom-0 w-1 ${t.bar}`} />
       <div className="p-5">
         <div className="flex items-center justify-between gap-2">
-          <span
-            className={`inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${t.chip}`}
-          >
+          <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${t.chip}`}>
             <span className={`size-1.5 rounded-full ${t.bar}`} />
             {p.priority} · {p.category}
           </span>
@@ -842,9 +748,7 @@ function PriorityCard({ p }: { p: Priority }) {
             <Zap className="size-3 text-primary shrink-0" />
             <span className="truncate">{p.impact}</span>
           </div>
-          <button
-            className={`shrink-0 inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-md shadow-sm transition-all ${t.cta}`}
-          >
+          <button className={`shrink-0 inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-md shadow-sm transition-all ${t.cta}`}>
             {p.cta}
             <ArrowRight className="size-3" />
           </button>
@@ -859,9 +763,6 @@ function PriorityCard({ p }: { p: Priority }) {
    ============================================================ */
 
 function Dashboard() {
-  const { data: dashboardData, isLoading, error } = useDashboardSummary();
-  const kpis = updateKpisWithLiveData(dashboardData);
-
   return (
     <AppLayout>
       <div className="space-y-7">
@@ -879,17 +780,14 @@ function Dashboard() {
             <div className="relative flex flex-wrap items-start justify-between gap-4">
               <div className="min-w-0">
                 <div className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.22em] text-primary mb-2">
-                  <span
-                    className={`size-1.5 rounded-full ${isLoading ? "bg-muted animate-pulse" : "bg-success animate-pulse"}`}
-                  />
-                  {isLoading ? "Loading..." : error ? "Connection issue" : "Live · synced now"}
+                  <span className="size-1.5 rounded-full bg-success animate-pulse" />
+                  Live · synced 2s ago
                 </div>
                 <h1 className="text-[26px] md:text-[30px] font-bold font-[family-name:var(--font-heading)] tracking-tight text-foreground leading-tight">
                   Clinical Supply Chain Operations Center
                 </h1>
                 <p className="mt-1.5 text-[13.5px] text-muted-foreground max-w-2xl leading-relaxed">
-                  Real-time visibility across inventory, shipments, warehouse capacity and
-                  procurement decisions.
+                  Real-time visibility across inventory, shipments, warehouse capacity and procurement decisions.
                 </p>
               </div>
               <div className="flex items-center gap-1.5 text-[11px] font-medium shrink-0">
@@ -910,22 +808,9 @@ function Dashboard() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {isLoading ? (
-              <>
-                <KpiCardSkeleton />
-                <KpiCardSkeleton />
-                <KpiCardSkeleton />
-                <KpiCardSkeleton />
-              </>
-            ) : error ? (
-              <>
-                <div className="lg:col-span-4">
-                  <KpiLoadError />
-                </div>
-              </>
-            ) : kpis.length > 0 ? (
-              kpis.map((k) => <ExecutiveKpiCard key={k.label} kpi={k} />)
-            ) : null}
+            {kpis.map((k) => (
+              <ExecutiveKpiCard key={k.label} kpi={k} />
+            ))}
           </div>
         </section>
 
@@ -1020,20 +905,14 @@ function Dashboard() {
                     Demand
                   </span>
                   <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-                    <span
-                      className="size-2 rounded-sm"
-                      style={{ background: "var(--color-warning)" }}
-                    />
+                    <span className="size-2 rounded-sm" style={{ background: "var(--color-warning)" }} />
                     Forecast
                   </span>
                 </div>
               </div>
               <div className="h-72 -mx-2">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart
-                    data={trendWithForecast}
-                    margin={{ top: 10, right: 12, left: 0, bottom: 0 }}
-                  >
+                  <AreaChart data={trendWithForecast} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}>
                     <defs>
                       <linearGradient id="gInv" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="var(--color-primary)" stopOpacity={0.35} />
@@ -1048,33 +927,11 @@ function Dashboard() {
                         <stop offset="100%" stopColor="var(--color-warning)" stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid
-                      stroke="var(--color-border)"
-                      strokeDasharray="3 3"
-                      vertical={false}
-                    />
-                    <XAxis
-                      dataKey="month"
-                      tick={{
-                        fill: "var(--color-muted-foreground)",
-                        fontSize: 11,
-                        fontWeight: 500,
-                      }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <YAxis
-                      tick={{ fill: "var(--color-muted-foreground)", fontSize: 11 }}
-                      axisLine={false}
-                      tickLine={false}
-                      width={48}
-                    />
+                    <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="month" tick={{ fill: "var(--color-muted-foreground)", fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fill: "var(--color-muted-foreground)", fontSize: 11 }} axisLine={false} tickLine={false} width={48} />
                     <Tooltip
-                      cursor={{
-                        stroke: "var(--color-primary)",
-                        strokeWidth: 1,
-                        strokeDasharray: "3 3",
-                      }}
+                      cursor={{ stroke: "var(--color-primary)", strokeWidth: 1, strokeDasharray: "3 3" }}
                       contentStyle={{
                         background: "var(--color-card)",
                         border: "1px solid var(--color-border)",
@@ -1087,41 +944,11 @@ function Dashboard() {
                       x="Jun"
                       stroke="var(--color-border)"
                       strokeDasharray="4 4"
-                      label={{
-                        value: "Today",
-                        position: "insideTopRight",
-                        fill: "var(--color-muted-foreground)",
-                        fontSize: 10,
-                      }}
+                      label={{ value: "Today", position: "insideTopRight", fill: "var(--color-muted-foreground)", fontSize: 10 }}
                     />
-                    <Area
-                      name="Inventory"
-                      type="monotone"
-                      dataKey="inventory"
-                      stroke="var(--color-primary)"
-                      fill="url(#gInv)"
-                      strokeWidth={2.5}
-                      activeDot={{ r: 5 }}
-                    />
-                    <Area
-                      name="Demand"
-                      type="monotone"
-                      dataKey="demand"
-                      stroke="var(--color-info)"
-                      fill="url(#gDem)"
-                      strokeWidth={2.5}
-                      activeDot={{ r: 5 }}
-                    />
-                    <Area
-                      name="Forecast"
-                      type="monotone"
-                      dataKey="forecast"
-                      stroke="var(--color-warning)"
-                      fill="url(#gFor)"
-                      strokeWidth={2.5}
-                      strokeDasharray="5 4"
-                      activeDot={{ r: 5 }}
-                    />
+                    <Area name="Inventory" type="monotone" dataKey="inventory" stroke="var(--color-primary)" fill="url(#gInv)" strokeWidth={2.5} activeDot={{ r: 5 }} />
+                    <Area name="Demand" type="monotone" dataKey="demand" stroke="var(--color-info)" fill="url(#gDem)" strokeWidth={2.5} activeDot={{ r: 5 }} />
+                    <Area name="Forecast" type="monotone" dataKey="forecast" stroke="var(--color-warning)" fill="url(#gFor)" strokeWidth={2.5} strokeDasharray="5 4" activeDot={{ r: 5 }} />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
@@ -1145,11 +972,7 @@ function Dashboard() {
               </div>
               <div className="h-72 -mx-2">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={capacityForecast}
-                    margin={{ top: 10, right: 12, left: 0, bottom: 0 }}
-                    barCategoryGap="22%"
-                  >
+                  <BarChart data={capacityForecast} margin={{ top: 10, right: 12, left: 0, bottom: 0 }} barCategoryGap="22%">
                     <defs>
                       <linearGradient id="bAct" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="var(--color-primary)" stopOpacity={1} />
@@ -1160,29 +983,9 @@ function Dashboard() {
                         <stop offset="100%" stopColor="var(--color-warning)" stopOpacity={0.55} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid
-                      stroke="var(--color-border)"
-                      strokeDasharray="3 3"
-                      vertical={false}
-                    />
-                    <XAxis
-                      dataKey="month"
-                      tick={{
-                        fill: "var(--color-muted-foreground)",
-                        fontSize: 11,
-                        fontWeight: 500,
-                      }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <YAxis
-                      tick={{ fill: "var(--color-muted-foreground)", fontSize: 11 }}
-                      axisLine={false}
-                      tickLine={false}
-                      width={36}
-                      domain={[0, 100]}
-                      unit="%"
-                    />
+                    <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="month" tick={{ fill: "var(--color-muted-foreground)", fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fill: "var(--color-muted-foreground)", fontSize: 11 }} axisLine={false} tickLine={false} width={36} domain={[0, 100]} unit="%" />
                     <Tooltip
                       cursor={{ fill: "color-mix(in oklab, var(--color-primary) 6%, transparent)" }}
                       contentStyle={{
@@ -1197,21 +1000,10 @@ function Dashboard() {
                       y={80}
                       stroke="var(--color-destructive)"
                       strokeDasharray="4 4"
-                      label={{
-                        value: "Capacity threshold 80%",
-                        position: "insideTopLeft",
-                        fill: "var(--color-destructive)",
-                        fontSize: 10,
-                        fontWeight: 600,
-                      }}
+                      label={{ value: "Capacity threshold 80%", position: "insideTopLeft", fill: "var(--color-destructive)", fontSize: 10, fontWeight: 600 }}
                     />
                     <Bar dataKey="actual" name="Actual" fill="url(#bAct)" radius={[6, 6, 0, 0]} />
-                    <Bar
-                      dataKey="projected"
-                      name="Projected"
-                      fill="url(#bProj)"
-                      radius={[6, 6, 0, 0]}
-                    />
+                    <Bar dataKey="projected" name="Projected" fill="url(#bProj)" radius={[6, 6, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -1253,38 +1045,26 @@ function Dashboard() {
                   const Icon = z.name.includes("Frozen")
                     ? Snowflake
                     : z.name.includes("Cold")
-                      ? Thermometer
-                      : Warehouse;
+                    ? Thermometer
+                    : Warehouse;
                   return (
-                    <div
-                      key={z.id}
-                      className="rounded-xl border border-border/60 bg-card/50 p-4 transition-colors hover:bg-muted/40"
-                    >
+                    <div key={z.id} className="rounded-xl border border-border/60 bg-card/50 p-4 transition-colors hover:bg-muted/40">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <div
-                            className={`size-8 rounded-lg grid place-items-center ${warn ? "bg-warning/15 text-warning-foreground" : "bg-teal/15 text-teal"}`}
-                          >
+                          <div className={`size-8 rounded-lg grid place-items-center ${warn ? "bg-warning/15 text-warning-foreground" : "bg-teal/15 text-teal"}`}>
                             <Icon className="size-4" />
                           </div>
                           <div>
                             <div className="text-[13px] font-semibold leading-tight">{z.name}</div>
-                            <div className="text-[10.5px] text-muted-foreground tabular-nums">
-                              {z.temperature}
-                            </div>
+                            <div className="text-[10.5px] text-muted-foreground tabular-nums">{z.temperature}</div>
                           </div>
                         </div>
-                        <div
-                          className={`text-[18px] font-bold font-[family-name:var(--font-heading)] tabular-nums ${warn ? "text-warning-foreground" : "text-foreground"}`}
-                        >
+                        <div className={`text-[18px] font-bold font-[family-name:var(--font-heading)] tabular-nums ${warn ? "text-warning-foreground" : "text-foreground"}`}>
                           {pct}%
                         </div>
                       </div>
                       <div className="mt-3 h-1.5 w-full rounded-full bg-muted overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all duration-700 ${warn ? "bg-warning" : "bg-primary"}`}
-                          style={{ width: `${pct}%` }}
-                        />
+                        <div className={`h-full rounded-full transition-all duration-700 ${warn ? "bg-warning" : "bg-primary"}`} style={{ width: `${pct}%` }} />
                       </div>
                       <div className="mt-2 text-[10.5px] text-muted-foreground tabular-nums">
                         {z.occupied.toLocaleString()} / {z.capacity.toLocaleString()} slots

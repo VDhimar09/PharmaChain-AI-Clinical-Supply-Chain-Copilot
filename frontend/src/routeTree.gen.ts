@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as WarehouseRouteImport } from './routes/warehouse'
 import { Route as ShipmentsRouteImport } from './routes/shipments'
 import { Route as InventoryRouteImport } from './routes/inventory'
+import { Route as InsightsRouteImport } from './routes/insights'
 import { Route as AssistantRouteImport } from './routes/assistant'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -30,6 +31,11 @@ const InventoryRoute = InventoryRouteImport.update({
   path: '/inventory',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InsightsRoute = InsightsRouteImport.update({
+  id: '/insights',
+  path: '/insights',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AssistantRoute = AssistantRouteImport.update({
   id: '/assistant',
   path: '/assistant',
@@ -44,6 +50,7 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/assistant': typeof AssistantRoute
+  '/insights': typeof InsightsRoute
   '/inventory': typeof InventoryRoute
   '/shipments': typeof ShipmentsRoute
   '/warehouse': typeof WarehouseRoute
@@ -51,6 +58,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/assistant': typeof AssistantRoute
+  '/insights': typeof InsightsRoute
   '/inventory': typeof InventoryRoute
   '/shipments': typeof ShipmentsRoute
   '/warehouse': typeof WarehouseRoute
@@ -59,22 +67,42 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/assistant': typeof AssistantRoute
+  '/insights': typeof InsightsRoute
   '/inventory': typeof InventoryRoute
   '/shipments': typeof ShipmentsRoute
   '/warehouse': typeof WarehouseRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/assistant' | '/inventory' | '/shipments' | '/warehouse'
+  fullPaths:
+    | '/'
+    | '/assistant'
+    | '/insights'
+    | '/inventory'
+    | '/shipments'
+    | '/warehouse'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/assistant' | '/inventory' | '/shipments' | '/warehouse'
+  to:
+    | '/'
+    | '/assistant'
+    | '/insights'
+    | '/inventory'
+    | '/shipments'
+    | '/warehouse'
   id:
-    '__root__' | '/' | '/assistant' | '/inventory' | '/shipments' | '/warehouse'
+    | '__root__'
+    | '/'
+    | '/assistant'
+    | '/insights'
+    | '/inventory'
+    | '/shipments'
+    | '/warehouse'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AssistantRoute: typeof AssistantRoute
+  InsightsRoute: typeof InsightsRoute
   InventoryRoute: typeof InventoryRoute
   ShipmentsRoute: typeof ShipmentsRoute
   WarehouseRoute: typeof WarehouseRoute
@@ -103,6 +131,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InventoryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/insights': {
+      id: '/insights'
+      path: '/insights'
+      fullPath: '/insights'
+      preLoaderRoute: typeof InsightsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/assistant': {
       id: '/assistant'
       path: '/assistant'
@@ -123,6 +158,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AssistantRoute: AssistantRoute,
+  InsightsRoute: InsightsRoute,
   InventoryRoute: InventoryRoute,
   ShipmentsRoute: ShipmentsRoute,
   WarehouseRoute: WarehouseRoute,

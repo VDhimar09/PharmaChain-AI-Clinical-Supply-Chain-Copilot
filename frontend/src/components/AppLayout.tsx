@@ -1,5 +1,5 @@
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Package, Warehouse, Truck, Sparkles, Bell, Search, Pill } from "lucide-react";
+import { LayoutDashboard, Package, Warehouse, Truck, Sparkles, Bell, Search, Pill, BrainCircuit } from "lucide-react";
 import type { ReactNode } from "react";
 
 const nav = [
@@ -8,7 +8,9 @@ const nav = [
   { to: "/warehouse", label: "Warehouse Capacity", icon: Warehouse },
   { to: "/shipments", label: "Shipments", icon: Truck },
   { to: "/assistant", label: "AI Procurement", icon: Sparkles },
+  { to: "/insights", label: "AI Insights", icon: BrainCircuit },
 ] as const;
+
 
 export function AppLayout({ children }: { children?: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -66,6 +68,16 @@ export function AppLayout({ children }: { children?: ReactNode }) {
             <p className="text-sm font-medium text-muted-foreground font-[family-name:var(--font-heading)]">AI Clinical Supply Chain Copilot</p>
           </div>
           <div className="flex items-center gap-3">
+            <div className="hidden lg:inline-flex items-center gap-2 pl-2.5 pr-3 py-1.5 rounded-full border border-primary/25 bg-gradient-to-r from-primary/8 via-teal/8 to-transparent">
+              <span className="relative flex size-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-60" />
+                <span className="relative inline-flex size-2 rounded-full bg-primary" />
+              </span>
+              <Sparkles className="size-3.5 text-primary" />
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-primary">
+                Copilot online
+              </span>
+            </div>
             <div className="hidden md:flex items-center gap-2 bg-muted rounded-md px-3 py-1.5 w-72">
               <Search className="size-4 text-muted-foreground" />
               <input
@@ -82,7 +94,8 @@ export function AppLayout({ children }: { children?: ReactNode }) {
             </div>
           </div>
         </header>
-        <main className="flex-1 p-4 md:p-8 overflow-x-hidden">{children ?? <Outlet />}</main>
+        <main key={pathname} className="page-in flex-1 p-4 md:p-8 overflow-x-hidden">{children ?? <Outlet />}</main>
+
       </div>
     </div>
   );
