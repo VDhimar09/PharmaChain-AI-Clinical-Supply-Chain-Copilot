@@ -97,6 +97,79 @@ class ResponseComposer:
                 "Unable to compose a natural-language response."
             ) from exc
 
+    def compose_copilot_response(
+        self,
+        *,
+        intent: str,
+        result: dict[str, Any],
+    ) -> dict[str, Any]:
+        try:
+            tool_results = self._as_mapping(result.get("tool_results"))
+            tool_execution = result.get("tool_execution", [])
+            inventory = self._as_mapping(tool_results.get("inventory"))
+            warehouse = self._as_mapping(tool_results.get("warehouse"))
+            shipment = self._as_mapping(tool_results.get("shipment"))
+            procurement = self._as_mapping(tool_results.get("procurement"))
+            ai_insights = self._as_mapping(tool_results.get("ai_insights"))
+
+            recommendations = self._extract_recommendations(
+                ai_insights=ai_insights,
+                procurement=procurement,
+            )
+
+            return {
+                "confidence": self._copilot_confidence(
+                    procurement=procurement,
+                    ai_insights=ai_insights,
+                    tool_execution=tool_execution,
+                ),
+                "tools_used": [
+                    self._as_text(entry.get("tool"))
+                    for entry in tool_execution
+                    if self._as_text(entry.get("status")) == "SUCCESS"
+                ],
+                "reasoning": [
+                    {
+                        "step": self._humanize_tool_key(
+                            self._as_text(entry.get("tool_key"))
+                            or self._as_text(entry.get("tool"))
+                        ),
+                        "status": self._as_text(entry.get("status"), default="SUCCESS"),
+                    }
+                    for entry in tool_execution
+                ],
+                "tool_execution": [
+                    {
+                        "tool": self._as_text(entry.get("tool")),
+                        "status": self._as_text(entry.get("status"), default="SUCCESS"),
+                        "execution_time_ms": entry.get("execution_time_ms", 0),
+                    }
+                    for entry in tool_execution
+                ],
+                "evidence": {
+                    "inventory": dict(inventory),
+                    "warehouse": dict(warehouse),
+                    "shipments": dict(shipment),
+                    "procurement": dict(procurement),
+                    "ai_insights": dict(ai_insights),
+                },
+                "recommendations": recommendations,
+                "response": self._compose_copilot_text(
+                    intent=intent,
+                    inventory=inventory,
+                    warehouse=warehouse,
+                    shipment=shipment,
+                    procurement=procurement,
+                    ai_insights=ai_insights,
+                    recommendations=recommendations,
+                ),
+            }
+        except Exception as exc:
+            logger.exception("Copilot response composition failed.")
+            raise ResponseCompositionException(
+                "Unable to compose a structured copilot response."
+            ) from exc
+
     def _get_recommendation(
         self,
         procurement: Mapping[str, Any],
@@ -214,6 +287,170 @@ class ResponseComposer:
                 return "Plan executed: " + " -> ".join(ordered_tools)
 
         return "Plan executed: No tool sequence provided."
+
+    def _compose_copilot_text(
+        self,
+        *,
+        intent: str,
+        inventory: Mapping[str, Any],
+        warehouse: Mapping[str, Any],
+        shipment: Mapping[str, Any],
+        procurement: Mapping[str, Any],
+        ai_insights: Mapping[str, Any],
+        recommendations: list[str],
+    ) -> str:
+        if intent == "EXECUTIVE_SUMMARY":
+            alerts = ai_insights.get("alerts", [])
+            alert_count = len(alerts) if isinstance(alerts, list) else 0
+            return (
+                "Today's highest operational priorities are "
+                f"{alert_count} critical alerts, "
+                f"{inventory.get('low_stock_products', 0)} low-stock products, "
+                f"{shipment.get('delayed_shipments', 0)} delayed shipments, and "
+                f"{round(warehouse.get('occupancy_percentage', 0))}% warehouse occupancy. "
+                + self._summarize_recommendations(recommendations)
+            ).strip()
+
+        if intent == "RISK_SUMMARY":
+            return (
+                "Current operational risks are concentrated in inventory availability, "
+                "shipment delays, and warehouse capacity pressure. "
+                + self._summarize_recommendations(recommendations)
+            ).strip()
+
+        if intent == "INVENTORY_STATUS":
+            return (
+                f"Inventory is tracking {inventory.get('total_available_quantity', 0)} available units "
+                f"across {inventory.get('total_inventory_items', 0)} items, with "
+                f"{inventory.get('low_stock_products', 0)} low-stock products. "
+                + self._summarize_recommendations(recommendations)
+            ).strip()
+
+        if intent == "WAREHOUSE_STATUS":
+            return (
+                f"Warehouse capacity is {warehouse.get('occupancy_percentage', 0)}% occupied, "
+                f"with {warehouse.get('available_capacity', 0)} units of available space. "
+                + self._summarize_recommendations(recommendations)
+            ).strip()
+
+        if intent == "SHIPMENT_STATUS":
+            return (
+                f"There are {shipment.get('inbound_shipments', 0)} inbound shipments, "
+                f"{shipment.get('outbound_shipments', 0)} outbound shipments, and "
+                f"{shipment.get('delayed_shipments', 0)} delayed shipments. "
+                + self._summarize_recommendations(recommendations)
+            ).strip()
+
+        if intent == "PROCUREMENT_STATUS":
+            pending = self._nested_count(ai_insights, "procurement", "pending")
+            approved = self._nested_count(ai_insights, "procurement", "approved")
+            rejected = self._nested_count(ai_insights, "procurement", "rejected")
+            return (
+                f"Procurement currently shows {pending} pending, {approved} approved, and "
+                f"{rejected} rejected requests. "
+                + self._summarize_recommendations(recommendations)
+            ).strip()
+
+        if intent == "AI_INSIGHTS":
+            return (
+                "The latest AI insights highlight operational recommendations across inventory, "
+                "warehouse, shipments, and procurement. "
+                + self._summarize_recommendations(recommendations)
+            ).strip()
+
+        if intent == "PROCUREMENT":
+            return self.compose(
+                {
+                    "user_request": "",
+                    "reasoning": "",
+                    "plan": [],
+                    "tool_results": {
+                        "inventory": inventory,
+                        "warehouse": warehouse,
+                        "shipment": shipment,
+                        "procurement": procurement,
+                    },
+                }
+            )
+
+        return (
+            "I could not determine a precise operational intent. "
+            + self._summarize_recommendations(recommendations)
+        ).strip()
+
+    def _extract_recommendations(
+        self,
+        *,
+        ai_insights: Mapping[str, Any],
+        procurement: Mapping[str, Any],
+    ) -> list[str]:
+        recommendations: list[str] = []
+        raw_ai_recommendations = ai_insights.get("recommendations")
+        if isinstance(raw_ai_recommendations, list):
+            for item in raw_ai_recommendations:
+                if isinstance(item, Mapping):
+                    title = self._as_text(item.get("title"))
+                    message = self._as_text(item.get("message"))
+                    recommendations.append(
+                        ": ".join(part for part in (title, message) if part)
+                    )
+
+        decision = self._as_text(procurement.get("decision"))
+        reason = self._as_text(procurement.get("reason"))
+        if decision:
+            recommendations.append(
+                ": ".join(
+                    part for part in (f"Procurement decision {decision}", reason) if part
+                )
+            )
+
+        return recommendations[:6]
+
+    def _copilot_confidence(
+        self,
+        *,
+        procurement: Mapping[str, Any],
+        ai_insights: Mapping[str, Any],
+        tool_execution: list[Any],
+    ) -> int:
+        procurement_confidence = procurement.get("confidence")
+        if isinstance(procurement_confidence, (int, float)):
+            return round(
+                procurement_confidence * 100
+                if procurement_confidence <= 1
+                else procurement_confidence
+            )
+
+        ai_confidence = ai_insights.get("confidence")
+        if isinstance(ai_confidence, (int, float)):
+            return round(ai_confidence)
+
+        successful_tools = sum(
+            1
+            for entry in tool_execution
+            if self._as_text(entry.get("status")) == "SUCCESS"
+        )
+        return min(99, 72 + successful_tools * 6)
+
+    def _nested_count(self, payload: Mapping[str, Any], *keys: str) -> int:
+        current: Any = payload
+        for key in keys:
+            if isinstance(current, Mapping):
+                current = current.get(key)
+            else:
+                return 0
+
+        return len(current) if isinstance(current, list) else 0
+
+    def _summarize_recommendations(self, recommendations: list[str]) -> str:
+        if not recommendations:
+            return "No additional AI recommendations are available."
+        return "Top recommendation: " + recommendations[0]
+
+    def _humanize_tool_key(self, value: str) -> str:
+        if not value:
+            return "Tool Execution"
+        return value.replace("_", " ").title().replace("Ai ", "AI ") + " Analysis"
 
     def _format_generic_mapping(
         self,

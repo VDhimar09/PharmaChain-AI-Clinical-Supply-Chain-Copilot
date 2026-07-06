@@ -11,6 +11,12 @@ class SupplierRepository:
         return db.query(Supplier).all()
 
     @staticmethod
+    def get_by_id(db: Session, supplier_id):
+        return db.query(Supplier).filter(
+            Supplier.id == supplier_id
+        ).first()
+
+    @staticmethod
     def create(
         db: Session,
         supplier_data: SupplierCreate

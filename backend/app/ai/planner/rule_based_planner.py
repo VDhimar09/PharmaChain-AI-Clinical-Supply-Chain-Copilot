@@ -30,17 +30,48 @@ class RuleBasedPlanner(PlanningStrategy):
         plan = ExecutionPlan(user_request=context.user_message)
         intent = context.detected_intent
 
-        if intent == IntentEngine.INVENTORY:
+        if intent == IntentEngine.EXECUTIVE_SUMMARY:
             plan.add_tool("inventory")
-            plan.reasoning = "Inventory request."
+            plan.add_tool("warehouse")
+            plan.add_tool("shipment")
+            plan.add_tool("ai_insights")
+            plan.reasoning = (
+                "Executive summary requires inventory, warehouse, shipment, "
+                "and AI insights evidence."
+            )
+
+        elif intent == IntentEngine.AI_INSIGHTS:
+            plan.add_tool("ai_insights")
+            plan.reasoning = "AI insights request."
+
+        elif intent == IntentEngine.RISK_SUMMARY:
+            plan.add_tool("inventory")
+            plan.add_tool("warehouse")
+            plan.add_tool("shipment")
+            plan.add_tool("ai_insights")
+            plan.reasoning = (
+                "Risk summary requires operational evidence across inventory, "
+                "warehouse, shipments, and AI insights."
+            )
+
+        elif intent == IntentEngine.INVENTORY:
+            plan.add_tool("inventory")
+            plan.add_tool("ai_insights")
+            plan.reasoning = "Inventory status request."
 
         elif intent == IntentEngine.WAREHOUSE:
             plan.add_tool("warehouse")
-            plan.reasoning = "Warehouse request."
+            plan.add_tool("ai_insights")
+            plan.reasoning = "Warehouse status request."
 
         elif intent == IntentEngine.SHIPMENT:
             plan.add_tool("shipment")
-            plan.reasoning = "Shipment request."
+            plan.add_tool("ai_insights")
+            plan.reasoning = "Shipment status request."
+
+        elif intent == IntentEngine.PROCUREMENT_STATUS:
+            plan.add_tool("ai_insights")
+            plan.reasoning = "Procurement status request."
 
         elif intent == IntentEngine.PROCUREMENT:
             plan.add_tool("inventory")

@@ -3,10 +3,17 @@ import {
   shipmentsApi,
   Shipment,
   ShipmentStatus,
+  aiInsightsApi,
+  AIInsightsResponse,
+  copilotApi,
+  CopilotChatRequest,
+  CopilotChatResponse,
   dashboardApi,
   DashboardSummary,
   inventoryApi,
   InventoryItem,
+  ProcurementAnalysisRequest,
+  ProcurementAnalysisResponse,
   procurementAiApi,
   ProcurementAIRequest,
   ProcurementAIResponse,
@@ -95,6 +102,15 @@ export function useEvaluateProcurement(
   });
 }
 
+export function useAnalyzeProcurement(
+  options?: UseMutationOptions<ProcurementAnalysisResponse, Error, ProcurementAnalysisRequest>,
+) {
+  return useMutation<ProcurementAnalysisResponse, Error, ProcurementAnalysisRequest>({
+    mutationFn: procurementAiApi.analyze,
+    ...options,
+  });
+}
+
 export function useWarehouseZones(options?: UseQueryOptions<WarehouseZone[], Error>) {
   return useQuery<WarehouseZone[], Error>({
     queryKey: ["warehouse-zones"],
@@ -125,6 +141,25 @@ export function useDashboardSummary(options?: UseQueryOptions<DashboardSummary, 
     queryFn: dashboardApi.getSummary,
     staleTime: 1000 * 60, // Data is fresh for 1 minute
     gcTime: 1000 * 60 * 5, // Keep in cache for 5 minutes
+    ...options,
+  });
+}
+
+export function useAiInsights(options?: UseQueryOptions<AIInsightsResponse, Error>) {
+  return useQuery<AIInsightsResponse, Error>({
+    queryKey: ["ai", "insights"],
+    queryFn: aiInsightsApi.get,
+    staleTime: 1000 * 60,
+    gcTime: 1000 * 60 * 5,
+    ...options,
+  });
+}
+
+export function useCopilotChat(
+  options?: UseMutationOptions<CopilotChatResponse, Error, CopilotChatRequest>,
+) {
+  return useMutation<CopilotChatResponse, Error, CopilotChatRequest>({
+    mutationFn: copilotApi.chat,
     ...options,
   });
 }

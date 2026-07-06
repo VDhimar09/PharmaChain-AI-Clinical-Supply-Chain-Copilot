@@ -56,6 +56,10 @@ class InventoryService:
 
     @staticmethod
     def get_expiring_products(
-        db: Session
+        db: Session,
+        days: int = 30,
     ):
-        return InventoryRepository.get_expiring_products(db)
+        return InventoryRepository.get_expiring_products(
+            db,
+            days=days,
+        )

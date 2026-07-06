@@ -24,6 +24,103 @@ class ProcurementAIService:
         pallet_quantity: int,
         month: str
     ):
+        evaluation = self._prepare_evaluation(
+            product_name=product_name,
+            pallet_quantity=pallet_quantity,
+            month=month,
+        )
+
+        decision = self.agent.evaluate(
+            current_occupancy=evaluation["occupancy"],
+            projected_occupancy=evaluation["projected_occupancy"],
+            temperature_match=evaluation["temperature_match"],
+            incoming_conflict=evaluation["incoming_conflict"],
+        )
+
+        reasoning = (
+            evaluation["fallback_reasoning"] +
+            decision.reasoning
+        )
+
+        risk_level = self._determine_risk_level(
+            decision=decision.decision
+        )
+        temperature_fit = (
+            "MATCH" if evaluation["temperature_match"]
+            else "MISMATCH"
+        )
+        badges = self._build_badges(
+            temperature_fit=temperature_fit,
+            incoming_conflict=evaluation["incoming_conflict"],
+            shelf_life_days=evaluation["product"].shelf_life_days,
+            zone_type=evaluation["zone"].zone_type,
+        )
+
+        return {
+            "decision": decision.decision,
+            "confidence": decision.confidence,
+            "reasoning": reasoning,
+            "inventory_units": evaluation["inventory_units"],
+            "risk_level": risk_level,
+            "recommended_zone": evaluation["zone"].name,
+            "temperature_fit": temperature_fit,
+            "badges": badges,
+            "current_occupancy_percent": round(
+                evaluation["occupancy"],
+                2
+            ),
+            "projected_occupancy_percent": round(
+                evaluation["projected_occupancy"],
+                2
+            )
+        }
+
+    def get_evaluation_context(
+        self,
+        product_name: str,
+        pallet_quantity: int,
+        month: str,
+    ):
+        evaluation = self._prepare_evaluation(
+            product_name=product_name,
+            pallet_quantity=pallet_quantity,
+            month=month,
+        )
+
+        decision = self.agent.evaluate(
+            current_occupancy=evaluation["occupancy"],
+            projected_occupancy=evaluation["projected_occupancy"],
+            temperature_match=evaluation["temperature_match"],
+            incoming_conflict=evaluation["incoming_conflict"],
+        )
+
+        reasoning = (
+            evaluation["fallback_reasoning"] +
+            decision.reasoning
+        )
+
+        return {
+            "product": evaluation["product"],
+            "inventory": evaluation["inventory"],
+            "zone": evaluation["zone"],
+            "incoming_shipments": evaluation["incoming_shipments"],
+            "inventory_units": evaluation["inventory_units"],
+            "incoming_total": evaluation["incoming_total"],
+            "occupancy": evaluation["occupancy"],
+            "projected_occupancy": evaluation["projected_occupancy"],
+            "temperature_match": evaluation["temperature_match"],
+            "decision": decision.decision,
+            "confidence": decision.confidence,
+            "reasoning": reasoning,
+            "month": month,
+        }
+
+    def _prepare_evaluation(
+        self,
+        product_name: str,
+        pallet_quantity: int,
+        month: str,
+    ):
         normalized_product_name = product_name.strip()
 
         if not normalized_product_name:
@@ -38,20 +135,9 @@ class ProcurementAIService:
                 status_code=400
             )
 
-        # -------------------------------------------------
-        # Debugging
-        # -------------------------------------------------
-        print("=" * 60)
-        print("Searching for:", normalized_product_name)
-
         product = self.repo.get_product(
             normalized_product_name
         )
-
-        print("Product found:", product)
-        print("=" * 60)
-
-        # -------------------------------------------------
 
         if not product:
             raise ProcurementEvaluationError(
@@ -134,49 +220,19 @@ class ProcurementAIService:
                 zone.capacity_units
             ) * 100
 
-        decision = self.agent.evaluate(
-            current_occupancy=occupancy,
-            projected_occupancy=projected_occupancy,
-            temperature_match=temperature_match,
-            incoming_conflict=incoming_conflict
-        )
-
-        reasoning = (
-            fallback_reasoning +
-            decision.reasoning
-        )
-
-        risk_level = self._determine_risk_level(
-            decision=decision.decision
-        )
-        temperature_fit = (
-            "MATCH" if temperature_match
-            else "MISMATCH"
-        )
-        badges = self._build_badges(
-            temperature_fit=temperature_fit,
-            incoming_conflict=incoming_conflict,
-            shelf_life_days=product.shelf_life_days,
-            zone_type=zone.zone_type,
-        )
-
         return {
-            "decision": decision.decision,
-            "confidence": decision.confidence,
-            "reasoning": reasoning,
             "inventory_units": inventory_units,
-            "risk_level": risk_level,
-            "recommended_zone": zone.name,
-            "temperature_fit": temperature_fit,
-            "badges": badges,
-            "current_occupancy_percent": round(
-                occupancy,
-                2
-            ),
-            "projected_occupancy_percent": round(
-                projected_occupancy,
-                2
-            )
+            "product": product,
+            "inventory": inventory,
+            "zone": zone,
+            "incoming_shipments": incoming_shipments,
+            "incoming_total": incoming_total,
+            "fallback_reasoning": fallback_reasoning,
+            "occupancy": occupancy,
+            "projected_occupancy": projected_occupancy,
+            "temperature_match": temperature_match,
+            "incoming_conflict": incoming_conflict,
+            "month": month,
         }
 
     def _determine_risk_level(

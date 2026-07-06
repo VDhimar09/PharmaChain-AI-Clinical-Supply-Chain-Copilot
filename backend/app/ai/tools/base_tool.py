@@ -19,6 +19,11 @@ class BaseTool(ABC):
         pass
 
     @property
+    def display_name(self) -> str:
+        """Human-readable tool name for UI rendering."""
+        return f"{self.name.replace('_', ' ').title()} Tool"
+
+    @property
     @abstractmethod
     def description(self) -> str:
         """Description of what the tool does."""

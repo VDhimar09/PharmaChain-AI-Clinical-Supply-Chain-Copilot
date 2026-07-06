@@ -35,6 +35,7 @@ class ReasoningPlanner:
                 "warehouse",
                 "shipment",
                 "procurement",
+                "ai_insights",
             )
         )
 

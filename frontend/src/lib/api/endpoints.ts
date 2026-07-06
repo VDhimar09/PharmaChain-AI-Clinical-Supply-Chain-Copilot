@@ -44,8 +44,14 @@ export type Product = {
   sku: string;
   name: string;
   category: string;
+  description: string;
+  dosage_form: string;
+  unit_of_measure: string;
   temperature_min: number;
   temperature_max: number;
+  shelf_life_days: number;
+  safety_stock: number;
+  supplier_id: string;
 };
 
 export type Supplier = {
@@ -76,6 +82,95 @@ export type ProcurementAIResponse = {
   badges: string[];
   current_occupancy_percent: number;
   projected_occupancy_percent: number;
+};
+
+export type ProcurementAnalysisRequest = {
+  product_id: string;
+  supplier_id: string;
+  requested_quantity: number;
+};
+
+export type ProcurementToolExecution = {
+  tool: string;
+  status: "SUCCESS" | "FAILED";
+};
+
+export type ProcurementReasoningStep = {
+  step: string;
+  status: "PASS" | "ATTENTION" | "FAIL";
+  message: string;
+};
+
+export type ProcurementRequestDetails = {
+  product_id: string;
+  product_name: string;
+  supplier_id: string;
+  supplier_name: string;
+  requested_quantity: number;
+  temperature_min: number;
+  temperature_max: number;
+  safety_stock: number;
+  shelf_life_days: number;
+};
+
+export type ProcurementInventoryEvidence = {
+  available_units: number;
+  requested_quantity: number;
+  safety_stock: number;
+  below_safety_stock: boolean;
+};
+
+export type ProcurementWarehouseEvidence = {
+  recommended_zone: string;
+  current_occupancy_percent: number;
+  projected_occupancy_percent: number;
+  available_capacity_units: number;
+};
+
+export type ProcurementShipmentEvidence = {
+  incoming_shipments: number;
+  incoming_units: number;
+  conflict_detected: boolean;
+};
+
+export type ProcurementSupplierEvidence = {
+  supplier_name: string;
+  reliability_score: number;
+  lead_time_days: number;
+};
+
+export type ProcurementColdChainEvidence = {
+  compatible: boolean;
+  temperature_min: number;
+  temperature_max: number;
+  zone_name: string;
+};
+
+export type ProcurementDecisionEvidence = {
+  demand_forecast: string;
+  shelf_life_valid: boolean;
+  shelf_life_days: number;
+};
+
+export type ProcurementEvidenceBundle = {
+  inventory: ProcurementInventoryEvidence;
+  warehouse: ProcurementWarehouseEvidence;
+  shipments: ProcurementShipmentEvidence;
+  supplier: ProcurementSupplierEvidence;
+  cold_chain: ProcurementColdChainEvidence;
+  procurement: ProcurementDecisionEvidence;
+};
+
+export type ProcurementAnalysisResponse = {
+  request_details: ProcurementRequestDetails;
+  decision: "APPROVE" | "REJECT" | "REVIEW";
+  confidence: number;
+  tool_execution: ProcurementToolExecution[];
+  reasoning: ProcurementReasoningStep[];
+  evidence: ProcurementEvidenceBundle;
+  recommendation: string;
+  summary: string;
+  explanation: string;
 };
 
 export type WarehouseZone = {
@@ -112,6 +207,8 @@ export const suppliersApi = {
 export const procurementAiApi = {
   evaluate: (payload: ProcurementAIRequest) =>
     apiClient.post<ProcurementAIResponse>("/api/procurement-ai/evaluate", payload),
+  analyze: (payload: ProcurementAnalysisRequest) =>
+    apiClient.post<ProcurementAnalysisResponse>("/api/ai/procurement/analyze", payload),
 };
 
 export const warehouseZonesApi = {
@@ -139,4 +236,159 @@ export type DashboardSummary = {
 
 export const dashboardApi = {
   getSummary: () => apiClient.get<DashboardSummary>("/api/dashboard/summary"),
+};
+
+export type InsightAlert = {
+  severity: "LOW" | "MEDIUM" | "HIGH";
+  title: string;
+  message: string;
+};
+
+export type InsightRecommendation = {
+  priority: "LOW" | "MEDIUM" | "HIGH";
+  title: string;
+  message: string;
+};
+
+export type InventoryInsightItem = {
+  id: string;
+  product_name: string;
+  sku: string;
+  category: string;
+  warehouse_zone: string;
+  quantity: number;
+  available_quantity: number;
+  reserved_quantity: number;
+  expiry_date: string | null;
+  days_to_expiry: number | null;
+  status: string;
+};
+
+export type WarehouseInsightItem = {
+  id: string;
+  name: string;
+  zone_type: string;
+  capacity_units: number;
+  occupied_units: number;
+  available_capacity: number;
+  occupancy_percentage: number;
+  temperature_min: number | null;
+  temperature_max: number | null;
+  status: string;
+};
+
+export type ShipmentInsightItem = {
+  id: string;
+  shipment_number: string;
+  shipment_type: string;
+  product_name: string;
+  supplier_name: string;
+  quantity: number;
+  status: string;
+  expected_arrival: string;
+  delay_days: number | null;
+};
+
+export type ProcurementInsightItem = {
+  id: string;
+  product_name: string;
+  requested_quantity: number;
+  priority: string;
+  status: string;
+  ai_recommendation: string | null;
+  ai_confidence: number | null;
+  created_by: string;
+  created_at: string;
+  approved_at: string | null;
+};
+
+export type TrendPoint = {
+  label: string;
+  value: number;
+  secondary_value: number | null;
+};
+
+export type AIInsightsResponse = {
+  generated_at: string;
+  confidence: number;
+  executive_summary: {
+    inventory_value: number;
+    warehouse_utilisation: number;
+    pending_procurements: number;
+    critical_alerts: number;
+  };
+  inventory: {
+    low_stock: InventoryInsightItem[];
+    overstock: InventoryInsightItem[];
+    near_expiry: InventoryInsightItem[];
+    fast_moving: InventoryInsightItem[];
+    slow_moving: InventoryInsightItem[];
+  };
+  warehouse: {
+    occupancy: WarehouseInsightItem[];
+    cold_chain: WarehouseInsightItem[];
+    available_capacity: WarehouseInsightItem[];
+  };
+  shipments: {
+    incoming: ShipmentInsightItem[];
+    outgoing: ShipmentInsightItem[];
+    delayed: ShipmentInsightItem[];
+  };
+  procurement: {
+    pending: ProcurementInsightItem[];
+    approved: ProcurementInsightItem[];
+    rejected: ProcurementInsightItem[];
+  };
+  alerts: InsightAlert[];
+  recommendations: InsightRecommendation[];
+  trend_data: {
+    inventory: TrendPoint[];
+    shipments: TrendPoint[];
+    warehouse: TrendPoint[];
+  };
+};
+
+export const aiInsightsApi = {
+  get: () => apiClient.get<AIInsightsResponse>("/api/ai/insights"),
+};
+
+export type CopilotChatRequest = {
+  message: string;
+};
+
+export type CopilotReasoningStep = {
+  step: string;
+  status: string;
+};
+
+export type CopilotToolExecution = {
+  tool: string;
+  status: string;
+  execution_time_ms: number;
+};
+
+export type CopilotEvidenceBundle = {
+  inventory: Record<string, unknown>;
+  warehouse: Record<string, unknown>;
+  shipments: Record<string, unknown>;
+  procurement: Record<string, unknown>;
+  ai_insights: Record<string, unknown>;
+};
+
+export type CopilotChatResponse = {
+  conversation_id: string;
+  generated_at: string;
+  intent: string;
+  confidence: number;
+  tools_used: string[];
+  reasoning: CopilotReasoningStep[];
+  tool_execution: CopilotToolExecution[];
+  evidence: CopilotEvidenceBundle;
+  recommendations: string[];
+  response: string;
+};
+
+export const copilotApi = {
+  chat: (payload: CopilotChatRequest) =>
+    apiClient.post<CopilotChatResponse>("/api/ai/copilot/chat", payload),
 };

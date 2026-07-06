@@ -21,3 +21,13 @@ class ProductService:
             db,
             product_data
         )
+
+    @staticmethod
+    def get_product_by_id(
+        db: Session,
+        product_id,
+    ):
+        return ProductRepository.get_by_id(
+            db,
+            product_id,
+        )

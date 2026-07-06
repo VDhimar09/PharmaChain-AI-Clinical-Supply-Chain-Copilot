@@ -1,5 +1,5 @@
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Package, Warehouse, Truck, Sparkles, Bell, Search, Pill, BrainCircuit } from "lucide-react";
+import { LayoutDashboard, Package, Warehouse, Truck, Sparkles, Bell, Search, Pill, BrainCircuit, MessagesSquare } from "lucide-react";
 import type { ReactNode } from "react";
 
 const nav = [
@@ -9,6 +9,7 @@ const nav = [
   { to: "/shipments", label: "Shipments", icon: Truck },
   { to: "/assistant", label: "AI Procurement", icon: Sparkles },
   { to: "/insights", label: "AI Insights", icon: BrainCircuit },
+  { to: "/copilot", label: "Executive Copilot", icon: MessagesSquare },
 ] as const;
 
 

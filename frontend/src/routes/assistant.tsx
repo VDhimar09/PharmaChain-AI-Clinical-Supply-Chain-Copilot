@@ -1,33 +1,35 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AppLayout } from "@/components/AppLayout";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
-import { StatusBadge } from "@/components/StatusBadge";
+import { useEffect, useState } from "react";
 import {
-  Sparkles,
-  CheckCircle2,
-  ShieldCheck,
-  Warehouse,
+  Activity,
   AlertTriangle,
-  User,
-  Thermometer,
-  Snowflake,
-  Package,
-  TrendingUp,
+  ArrowRight,
   BrainCircuit,
   CalendarDays,
-  Box,
-  ArrowRight,
-  Radio,
-  Activity,
   Lock,
+  Radio,
+  ShieldCheck,
+  Snowflake,
+  Sparkles,
+  Thermometer,
+  TrendingUp,
+  User,
+  Warehouse,
 } from "lucide-react";
 
-import { useState } from "react";
+import { AppLayout } from "@/components/AppLayout";
+import { ConfidenceGauge } from "@/components/procurement/ConfidenceGauge";
+import { DecisionCard } from "@/components/procurement/DecisionCard";
+import { EvidencePanel } from "@/components/procurement/EvidencePanel";
+import { ReasoningTimeline } from "@/components/procurement/ReasoningTimeline";
+import { RecommendationCard } from "@/components/procurement/RecommendationCard";
+import { ToolExecutionPanel } from "@/components/procurement/ToolExecutionPanel";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { useAnalyzeProcurement, useProducts, useSuppliers } from "@/lib/api/hooks";
+import type { ProcurementAnalysisResponse, Product } from "@/lib/api/endpoints";
+import { ApiError } from "@/lib/api/types";
 
 export const Route = createFileRoute("/assistant")({
   head: () => ({
@@ -42,73 +44,80 @@ export const Route = createFileRoute("/assistant")({
   component: AssistantPage,
 });
 
-const suppliers = [
-  "Pfizer Global Logistics",
-  "Moderna Distribution",
-  "Sanofi Pharma",
-  "Merck Logistics",
-  "Roche Clinical",
-  "Novartis Supply Co",
-  "GSK Distribution",
-  "Bayer Pharma",
-  "AstraZeneca Logistics",
-];
-
-const products = [
-  "Pfizer COVID-19 Vaccine",
-  "Moderna mRNA-1273",
-  "Insulin Glargine",
-  "Trial Compound X-117",
-  "Amoxicillin 500mg",
-  "Influenza Quadrivalent",
-  "Oncology Trial OXC-44",
-  "Heparin Sodium",
-  "HPV Gardasil 9",
-  "Trial Biologic BIO-22",
-  "Paracetamol IV",
-  "MMR Vaccine",
-];
-
-const temps = [
-  "-80°C (Ultra Low)",
-  "-70°C (Deep Freeze)",
-  "-20°C (Frozen)",
-  "2-8°C (Refrigerated)",
-  "15-25°C (Ambient)",
-];
-
 function AssistantPage() {
-  const [product, setProduct] = useState("Pfizer COVID-19 Vaccine");
-  const [supplier, setSupplier] = useState("Pfizer Global Logistics");
-  const [quantity, setQuantity] = useState("2000");
-  const [temp, setTemp] = useState("-70°C (Deep Freeze)");
-  const [arrival, setArrival] = useState("2026-07-15");
+  const productsQuery = useProducts();
+  const suppliersQuery = useSuppliers();
+  const analyzeMutation = useAnalyzeProcurement();
 
-  const [submitted, setSubmitted] = useState<null | {
-    product: string;
-    supplier: string;
-    quantity: string;
-    temp: string;
-    arrival: string;
-  }>(null);
-  const [loading, setLoading] = useState(false);
+  const [productId, setProductId] = useState("");
+  const [supplierId, setSupplierId] = useState("");
+  const [quantity, setQuantity] = useState("500");
+  const [submittedRequest, setSubmittedRequest] = useState<{
+    productName: string;
+    supplierName: string;
+    quantity: number;
+  } | null>(null);
 
-  function analyze() {
-    setLoading(true);
-    setSubmitted(null);
-    setTimeout(() => {
-      setSubmitted({ product, supplier, quantity, temp, arrival });
-      setLoading(false);
-    }, 1600);
+  const products = productsQuery.data ?? [];
+  const suppliers = suppliersQuery.data ?? [];
 
+  useEffect(() => {
+    if (!productId && products.length > 0) {
+      setProductId(products[0].id);
+    }
+  }, [productId, products]);
+
+  useEffect(() => {
+    if (!supplierId && suppliers.length > 0) {
+      setSupplierId(suppliers[0].id);
+    }
+  }, [supplierId, suppliers]);
+
+  const selectedProduct = products.find((item) => item.id === productId) ?? null;
+  const selectedSupplier = suppliers.find((item) => item.id === supplierId) ?? null;
+  const isFormReady = Boolean(selectedProduct && selectedSupplier && Number(quantity) > 0);
+  const requestError = !productsQuery.isLoading && !suppliersQuery.isLoading && (!selectedProduct || !selectedSupplier);
+
+  function handleProductChange(nextProductId: string) {
+    setProductId(nextProductId);
+
+    const nextProduct = products.find((item) => item.id === nextProductId);
+    if (nextProduct?.supplier_id) {
+      setSupplierId(nextProduct.supplier_id);
+    }
   }
 
-  const approved = true;
+  function analyze() {
+    if (!selectedProduct || !selectedSupplier) {
+      return;
+    }
+
+    const requestedQuantity = Number(quantity);
+    setSubmittedRequest({
+      productName: selectedProduct.name,
+      supplierName: selectedSupplier.name,
+      quantity: requestedQuantity,
+    });
+
+    analyzeMutation.mutate({
+      product_id: selectedProduct.id,
+      supplier_id: selectedSupplier.id,
+      requested_quantity: requestedQuantity,
+    });
+  }
+
+  const analysis = analyzeMutation.data;
+  const loading = analyzeMutation.isPending;
+  const errorMessage = getErrorMessage(
+    analyzeMutation.error ??
+      productsQuery.error ??
+      suppliersQuery.error ??
+      (requestError ? new Error("Unable to load procurement form options.") : null),
+  );
 
   return (
     <AppLayout>
       <div className="grid gap-6 xl:grid-cols-[minmax(0,460px)_minmax(0,1fr)]">
-        {/* ─── LEFT: Prompt-style Procurement Request ─── */}
         <Card className="h-fit overflow-hidden">
           <div className="px-6 pt-6 pb-4 border-b border-border/60 bg-gradient-to-b from-muted/40 to-transparent">
             <div className="flex items-center gap-2">
@@ -121,12 +130,12 @@ function AssistantPage() {
               Draft AI request
             </h2>
             <p className="mt-1 text-[13px] text-muted-foreground leading-relaxed">
-              Compose the request below. The Copilot will reason across capacity, cold-chain, expiry, and demand forecasts.
+              Compose the request below. The Copilot will reason across inventory, capacity,
+              cold-chain fit, incoming shipments, and supplier reliability.
             </p>
           </div>
 
           <CardContent className="p-6 space-y-6">
-            {/* Natural-language prompt */}
             <div>
               <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground mb-3">
                 The request
@@ -138,61 +147,69 @@ function AssistantPage() {
                   value={quantity}
                   onChange={setQuantity}
                   placeholder="0"
-                  width="w-20"
+                  width="w-24"
                 />{" "}
                 units of{" "}
-                <InlineSelect id="product" value={product} onChange={setProduct} options={products} />
+                <InlineSelect
+                  id="product"
+                  value={productId}
+                  onChange={handleProductChange}
+                  options={products.map((product) => ({
+                    value: product.id,
+                    label: product.name,
+                  }))}
+                  disabled={productsQuery.isLoading}
+                />
                 {" "}from{" "}
-                <InlineSelect id="supplier" value={supplier} onChange={setSupplier} options={suppliers} />
-                , arriving{" "}
-                <InlineDateInput id="arrival" value={arrival} onChange={setArrival} />{" "}
-                at{" "}
-                <InlineSelect id="temp" value={temp} onChange={setTemp} options={temps} />.
+                <InlineSelect
+                  id="supplier"
+                  value={supplierId}
+                  onChange={setSupplierId}
+                  options={suppliers.map((supplier) => ({
+                    value: supplier.id,
+                    label: supplier.name,
+                  }))}
+                  disabled={suppliersQuery.isLoading}
+                />
+                .
               </div>
             </div>
 
-            {/* Auto-detected chips */}
             <div>
               <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground mb-2 flex items-center gap-1.5">
                 <Sparkles className="size-3 text-primary" />
                 Copilot detected
               </div>
               <div className="flex flex-wrap gap-2">
-                {temp.includes("-70") || temp.includes("-80") ? (
-                  <Badge variant="outline" className="text-teal border-teal/40 bg-teal/10 gap-1">
-                    <Snowflake className="size-3" /> Deep Freeze Chain
-                  </Badge>
-                ) : temp.includes("-20") ? (
-                  <Badge variant="outline" className="text-info border-info/40 bg-info/10 gap-1">
-                    <Snowflake className="size-3" /> Frozen Chain
-                  </Badge>
-                ) : temp.includes("2-8") ? (
-                  <Badge variant="outline" className="text-primary border-primary/40 bg-primary/10 gap-1">
-                    <Thermometer className="size-3" /> Cold Chain
-                  </Badge>
-                ) : (
-                  <Badge variant="outline" className="text-muted-foreground border-border bg-muted/50 gap-1">
-                    <Thermometer className="size-3" /> Ambient
-                  </Badge>
+                {selectedProduct && (
+                  <TemperatureBadge product={selectedProduct} />
                 )}
-                {daysUntil(arrival) <= 14 && (
+                {selectedProduct && (
                   <Badge variant="outline" className="text-warning-foreground border-warning/40 bg-warning/10 gap-1">
-                    <AlertTriangle className="size-3" /> Short Lead Time · {daysUntil(arrival)}d
+                    <AlertTriangle className="size-3" /> Safety stock {selectedProduct.safety_stock}
                   </Badge>
                 )}
-                <Badge variant="outline" className="text-success border-success/40 bg-success/10 gap-1">
-                  <ShieldCheck className="size-3" /> GxP validated supplier
-                </Badge>
+                {selectedSupplier && (
+                  <Badge variant="outline" className="text-success border-success/40 bg-success/10 gap-1">
+                    <ShieldCheck className="size-3" /> Reliability {selectedSupplier.reliability_score.toFixed(2)}
+                  </Badge>
+                )}
               </div>
             </div>
 
+            {errorMessage && (
+              <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                {errorMessage}
+              </div>
+            )}
+
             <Button
               onClick={analyze}
-              disabled={loading}
+              disabled={!isFormReady || loading || productsQuery.isLoading || suppliersQuery.isLoading}
               className="w-full h-11 bg-gradient-to-r from-primary to-teal hover:opacity-95 shadow-lg shadow-primary/20 group"
             >
               <BrainCircuit className="size-4 mr-2" />
-              {loading ? "Analyzing…" : "Analyze procurement"}
+              {loading ? "Analyzing..." : "Analyze Procurement"}
               <ArrowRight className="size-4 ml-2 transition-transform group-hover:translate-x-0.5" />
             </Button>
 
@@ -200,16 +217,17 @@ function AssistantPage() {
               <span className="inline-flex items-center gap-1.5">
                 <Lock className="size-3" /> GxP · HIPAA · GDPR
               </span>
-              <span>Draft auto-saves</span>
+              <span>
+                {productsQuery.isLoading || suppliersQuery.isLoading ? "Loading options..." : "Live backend analysis"}
+              </span>
             </div>
           </CardContent>
         </Card>
 
-        {/* ─── RIGHT: AI Copilot canvas ─── */}
         <div className="space-y-4">
-          {!submitted && !loading && <CopilotStandby />}
+          {!submittedRequest && !loading && !analysis && <CopilotStandby />}
 
-          {submitted && (
+          {submittedRequest && (
             <Card className="bg-secondary/40">
               <CardContent className="p-5 flex items-start gap-3 justify-end flex-row-reverse">
                 <div className="size-9 rounded-full bg-muted grid place-items-center shrink-0">
@@ -218,10 +236,9 @@ function AssistantPage() {
                 <div className="text-sm leading-relaxed text-right">
                   <div className="font-medium">You</div>
                   <p className="text-muted-foreground mt-1">
-                    Requesting <span className="text-foreground font-medium">{submitted.quantity} units</span> of{" "}
-                    <span className="text-foreground font-medium">{submitted.product}</span> from{" "}
-                    <span className="text-foreground font-medium">{submitted.supplier}</span>, arriving{" "}
-                    <span className="text-foreground font-medium">{submitted.arrival}</span>.
+                    Requesting <span className="text-foreground font-medium">{submittedRequest.quantity} units</span> of{" "}
+                    <span className="text-foreground font-medium">{submittedRequest.productName}</span> from{" "}
+                    <span className="text-foreground font-medium">{submittedRequest.supplierName}</span>.
                   </p>
                 </div>
               </CardContent>
@@ -230,108 +247,27 @@ function AssistantPage() {
 
           {loading && <AiThinking />}
 
-          {submitted && !loading && (
-            <Card className="overflow-hidden border-success/40 animate-in fade-in slide-in-from-bottom-2 duration-500">
+          {analysis && !loading && (
+            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
+              <DecisionCard decision={analysis.decision} summary={analysis.summary} />
 
-
-              {/* Header */}
-              <div className="bg-gradient-to-r from-success/20 via-success/5 to-transparent px-6 py-5 flex items-center justify-between border-b border-success/30">
-                <div className="flex items-center gap-3">
-                  <div className="size-12 rounded-full bg-success text-success-foreground grid place-items-center shadow-lg shadow-success/30">
-                    <CheckCircle2 className="size-6" />
-                  </div>
-                  <div>
-                    <div className="text-xs uppercase tracking-wider text-success font-semibold">Recommendation</div>
-                    <div className="text-xl font-bold">APPROVED</div>
-                  </div>
-                </div>
-                <div className="flex flex-col items-end gap-2">
-                  <StatusBadge label="Risk: LOW" tone="success" />
-                  <Badge variant="outline" className="text-primary border-primary/40 bg-primary/10 gap-1">
-                    <BrainCircuit className="size-3" /> 94% Confidence
-                  </Badge>
-                </div>
+              <div className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
+                <ConfidenceGauge confidence={analysis.confidence} />
+                <RequestDetailsCard analysis={analysis} />
               </div>
 
-              <CardContent className="p-6 space-y-6">
-                {/* Metrics Grid */}
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <MetricCard
-                    icon={Warehouse}
-                    label="Current Occupancy"
-                    value="72%"
-                    sub="1,080 / 1,500 pallets"
-                    bar={72}
-                    barTone="primary"
-                  />
-                  <MetricCard
-                    icon={TrendingUp}
-                    label="Forecast Occupancy"
-                    value="84%"
-                    sub="1,260 / 1,500 pallets"
-                    bar={84}
-                    barTone="teal"
-                  />
-                  <MetricCard
-                    icon={Warehouse}
-                    label="Recommended Zone"
-                    value="Cold Storage B"
-                    sub="2-8°C capacity"
-                  />
-                  <MetricCard
-                    icon={AlertTriangle}
-                    label="Risk Level"
-                    value="LOW"
-                    valueTone="success"
-                    sub="Under 90% safety threshold"
-                  />
-                  <MetricCard
-                    icon={BrainCircuit}
-                    label="Confidence Score"
-                    value="94%"
-                    valueTone="primary"
-                    sub="Based on 6 months of data"
-                  />
-                  <MetricCard
-                    icon={Thermometer}
-                    label="Temperature Fit"
-                    value="Match"
-                    valueTone="teal"
-                    sub="Cold chain validated"
-                  />
-                </div>
+              <div className="grid gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+                <ToolExecutionPanel items={analysis.tool_execution} />
+                <ReasoningTimeline steps={analysis.reasoning} />
+              </div>
 
-                {/* Cold Chain & Expiry Indicators */}
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant="outline" className="text-primary border-primary/40 bg-primary/10 gap-1">
-                    <Thermometer className="size-3" /> Cold Chain: Verified
-                  </Badge>
-                  <Badge variant="outline" className="text-success border-success/40 bg-success/10 gap-1">
-                    <Snowflake className="size-3" /> Continuous Monitoring
-                  </Badge>
-                  <Badge variant="outline" className="text-teal border-teal/40 bg-teal/10 gap-1">
-                    <ShieldCheck className="size-3" /> GxP Compliant
-                  </Badge>
-                  <Badge variant="outline" className="text-warning-foreground border-warning/40 bg-warning/10 gap-1">
-                    <AlertTriangle className="size-3" /> Expiry Risk: Low
-                  </Badge>
-                  <Badge variant="outline" className="text-muted-foreground border-border bg-muted/50 gap-1">
-                    <CalendarDays className="size-3" /> Shelf Life: 14 mo
-                  </Badge>
-                </div>
+              <EvidencePanel evidence={analysis.evidence} />
 
-                {/* Reasoning */}
-                <div className="rounded-xl border border-border bg-muted/40 p-5 space-y-3">
-                  <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Reasoning</div>
-                  <div className="grid gap-3">
-                    <ReasonItem icon={Warehouse} text="Clinical Trial X ends next month, freeing 30 pallet spaces in Cold Storage B." />
-                    <ReasonItem icon={TrendingUp} text="Forecast occupancy stays under the 90% safety threshold even after this shipment." />
-                    <ReasonItem icon={Thermometer} text="Arrival window aligns with cold-chain capacity rotation schedule." />
-                    <ReasonItem icon={ShieldCheck} text="Supplier cold-chain audit passed (last reviewed 2026-05-12)." />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+              <RecommendationCard
+                recommendation={analysis.recommendation}
+                explanation={analysis.explanation}
+              />
+            </div>
           )}
         </div>
       </div>
@@ -339,99 +275,76 @@ function AssistantPage() {
   );
 }
 
-function MetricCard({
-  icon: Icon,
-  label,
-  value,
-  sub,
-  bar,
-  barTone = "primary",
-  valueTone = "default",
+function RequestDetailsCard({
+  analysis,
 }: {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  value: string;
-  sub?: string;
-  bar?: number;
-  barTone?: "primary" | "teal" | "success" | "warning";
-  valueTone?: "default" | "success" | "primary" | "teal" | "warning";
+  analysis: ProcurementAnalysisResponse;
 }) {
-  const toneMap = {
-    primary: "text-primary bg-primary/10",
-    teal: "text-teal-foreground bg-teal/15",
-    success: "text-success bg-success/15",
-    warning: "text-warning-foreground bg-warning/15",
-  };
-
-  const valueColor = {
-    default: "text-foreground",
-    primary: "text-primary",
-    teal: "text-teal-foreground",
-    success: "text-success",
-    warning: "text-warning-foreground",
-  };
-
-  const barColor = {
-    primary: "bg-primary",
-    teal: "bg-teal",
-    success: "bg-success",
-    warning: "bg-warning",
-  };
+  const details = analysis.request_details;
 
   return (
-    <div className="rounded-xl border bg-card p-4 space-y-3">
-      <div className="flex items-start justify-between">
-        <div className={`size-8 rounded-lg grid place-items-center ${toneMap[barTone]}`}>
-          <Icon className="size-4" />
+    <Card>
+      <CardContent className="p-5">
+        <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+          Procurement request details
         </div>
-        {valueTone !== "default" && (
-          <span className={`text-xs font-semibold ${valueColor[valueTone]}`}>{value}</span>
-        )}
-      </div>
-      <div>
-        <div className="text-sm font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
-        {valueTone === "default" && <div className="text-lg font-bold font-[family-name:var(--font-heading)] mt-0.5">{value}</div>}
-        {sub && <div className="text-sm text-muted-foreground mt-0.5">{sub}</div>}
-      </div>
-      {bar !== undefined && (
-        <div className="space-y-1">
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-primary/10">
-            <div
-              className={`h-full rounded-full ${barColor[barTone]} transition-all`}
-              style={{ width: `${bar}%` }}
-            />
-          </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <DetailItem label="Product" value={details.product_name} />
+          <DetailItem label="Supplier" value={details.supplier_name} />
+          <DetailItem label="Requested quantity" value={`${details.requested_quantity} units`} />
+          <DetailItem label="Temperature range" value={`${details.temperature_min}°C to ${details.temperature_max}°C`} />
+          <DetailItem label="Safety stock" value={`${details.safety_stock} units`} />
+          <DetailItem label="Shelf life" value={`${details.shelf_life_days} days`} />
         </div>
-      )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function DetailItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-border/70 bg-muted/20 p-3">
+      <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="mt-1 text-sm font-semibold leading-relaxed">{value}</div>
     </div>
   );
 }
 
-function ReasonItem({
-  icon: Icon,
-  text,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  text: string;
-}) {
+function TemperatureBadge({ product }: { product: Product }) {
+  const isDeepFreeze = product.temperature_max <= -20;
+  const isColdChain = product.temperature_min <= 8 && product.temperature_max <= 8;
+
+  if (isDeepFreeze) {
+    return (
+      <Badge variant="outline" className="text-teal border-teal/40 bg-teal/10 gap-1">
+        <Snowflake className="size-3" /> Deep freeze chain
+      </Badge>
+    );
+  }
+
+  if (isColdChain) {
+    return (
+      <Badge variant="outline" className="text-primary border-primary/40 bg-primary/10 gap-1">
+        <Thermometer className="size-3" /> Cold chain
+      </Badge>
+    );
+  }
+
   return (
-    <div className="flex items-start gap-3">
-      <div className="size-6 rounded-md bg-primary/10 grid place-items-center shrink-0 mt-0.5">
-        <Icon className="size-3.5 text-primary" />
-      </div>
-      <p className="text-sm leading-relaxed text-foreground">{text}</p>
-    </div>
+    <Badge variant="outline" className="text-muted-foreground border-border bg-muted/50 gap-1">
+      <Thermometer className="size-3" /> Ambient storage
+    </Badge>
   );
 }
 
 function AiThinking() {
   const steps = [
-    "Parsing procurement request…",
-    "Scanning warehouse capacity across 4 zones…",
-    "Validating cold-chain compatibility…",
-    "Cross-referencing 6-month demand forecast…",
-    "Composing recommendation…",
+    "Building deterministic execution plan...",
+    "Running inventory and warehouse checks...",
+    "Evaluating shipments and supplier evidence...",
+    "Composing procurement recommendation...",
   ];
+
   return (
     <Card className="overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
       <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-primary to-transparent bg-[length:200%_100%] animate-[ai-shimmer_1.6s_linear_infinite]" />
@@ -446,19 +359,19 @@ function AiThinking() {
           <div className="min-w-0">
             <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-primary">AI Copilot thinking</div>
             <div className="text-[15px] font-semibold ai-shimmer-text">
-              Analyzing capacity, demand, and cold-chain integrity
+              Analyzing inventory, capacity, shipments, and procurement policy
             </div>
           </div>
         </div>
         <ul className="mt-4 grid gap-2">
-          {steps.map((s, i) => (
+          {steps.map((step, index) => (
             <li
-              key={s}
+              key={step}
               className="flex items-center gap-2.5 text-[12.5px] text-muted-foreground opacity-0 animate-in fade-in slide-in-from-left-1"
-              style={{ animationDelay: `${i * 140}ms`, animationDuration: "400ms", animationFillMode: "forwards" }}
+              style={{ animationDelay: `${index * 140}ms`, animationDuration: "400ms", animationFillMode: "forwards" }}
             >
               <span className="size-1.5 rounded-full bg-primary/70 animate-pulse" />
-              <span>{s}</span>
+              <span>{step}</span>
             </li>
           ))}
         </ul>
@@ -467,35 +380,31 @@ function AiThinking() {
   );
 }
 
-function daysUntil(dateStr: string): number {
-  const diff = new Date(dateStr).getTime() - Date.now();
-  return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
-}
-
-/* ─── Inline prompt controls ─── */
-
 function InlineSelect({
   id,
   value,
   onChange,
   options,
+  disabled = false,
 }: {
   id: string;
   value: string;
-  onChange: (v: string) => void;
-  options: readonly string[];
+  onChange: (value: string) => void;
+  options: Array<{ value: string; label: string }>;
+  disabled?: boolean;
 }) {
   return (
     <span className="relative inline-block align-baseline">
       <select
         id={id}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="appearance-none bg-primary/8 hover:bg-primary/12 focus:bg-primary/14 border-b-2 border-primary/40 hover:border-primary focus:border-primary focus:outline-none rounded-t-md px-2 py-0.5 text-primary font-semibold cursor-pointer transition-colors max-w-[240px] truncate"
+        onChange={(event) => onChange(event.target.value)}
+        disabled={disabled}
+        className="appearance-none bg-primary/8 hover:bg-primary/12 focus:bg-primary/14 border-b-2 border-primary/40 hover:border-primary focus:border-primary focus:outline-none rounded-t-md px-2 py-0.5 text-primary font-semibold cursor-pointer transition-colors max-w-[240px] truncate disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {options.map((o) => (
-          <option key={o} value={o} className="text-foreground">
-            {o}
+        {options.map((option) => (
+          <option key={option.value} value={option.value} className="text-foreground">
+            {option.label}
           </option>
         ))}
       </select>
@@ -512,7 +421,7 @@ function InlineNumberInput({
 }: {
   id: string;
   value: string;
-  onChange: (v: string) => void;
+  onChange: (value: string) => void;
   placeholder?: string;
   width?: string;
 }) {
@@ -520,42 +429,21 @@ function InlineNumberInput({
     <input
       id={id}
       type="number"
+      min="1"
       value={value}
       placeholder={placeholder}
-      onChange={(e) => onChange(e.target.value)}
+      onChange={(event) => onChange(event.target.value)}
       className={`${width} bg-primary/8 hover:bg-primary/12 focus:bg-primary/14 border-b-2 border-primary/40 hover:border-primary focus:border-primary focus:outline-none rounded-t-md px-2 py-0.5 text-primary font-semibold text-center tabular-nums transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
     />
   );
 }
 
-function InlineDateInput({
-  id,
-  value,
-  onChange,
-}: {
-  id: string;
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <input
-      id={id}
-      type="date"
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="bg-primary/8 hover:bg-primary/12 focus:bg-primary/14 border-b-2 border-primary/40 hover:border-primary focus:border-primary focus:outline-none rounded-t-md px-2 py-0.5 text-primary font-semibold transition-colors"
-    />
-  );
-}
-
-/* ─── Copilot standby canvas (pharma navy) ─── */
-
 function CopilotStandby() {
   const capabilities = [
     { icon: Warehouse, label: "Capacity scanner", status: "Ready" },
     { icon: Snowflake, label: "Cold-chain validator", status: "Ready" },
-    { icon: TrendingUp, label: "Demand forecaster", status: "Ready" },
-    { icon: CalendarDays, label: "Expiry monitor", status: "Ready" },
+    { icon: TrendingUp, label: "Demand checker", status: "Ready" },
+    { icon: CalendarDays, label: "Shelf-life validator", status: "Ready" },
   ];
 
   return (
@@ -567,7 +455,6 @@ function CopilotStandby() {
         borderColor: "color-mix(in oklab, #ffffff 10%, transparent)",
       }}
     >
-      {/* Ambient glows */}
       <div
         aria-hidden
         className="absolute top-[-15%] right-[-10%] size-[520px] rounded-full blur-3xl opacity-40 pointer-events-none"
@@ -584,18 +471,15 @@ function CopilotStandby() {
             "radial-gradient(circle, color-mix(in oklab, var(--color-teal) 55%, transparent) 0%, transparent 70%)",
         }}
       />
-      {/* Subtle grid */}
       <div
         aria-hidden
         className="absolute inset-0 opacity-[0.06] pointer-events-none"
         style={{
-          backgroundImage:
-            "radial-gradient(circle, #ffffff 1px, transparent 1px)",
+          backgroundImage: "radial-gradient(circle, #ffffff 1px, transparent 1px)",
           backgroundSize: "28px 28px",
         }}
       />
 
-      {/* Top status bar */}
       <div className="relative flex items-center justify-between px-6 pt-5 text-[10px] font-mono uppercase tracking-[0.18em] text-white/45">
         <span className="inline-flex items-center gap-2">
           <span className="relative flex size-1.5">
@@ -605,12 +489,11 @@ function CopilotStandby() {
           Copilot · online
         </span>
         <span className="inline-flex items-center gap-4">
-          <span>Model · pharma-supply-v2.4</span>
-          <span className="hidden sm:inline">Latency · 42ms</span>
+          <span>Model · deterministic-v1</span>
+          <span className="hidden sm:inline">Planner · rule-based</span>
         </span>
       </div>
 
-      {/* Center hero */}
       <div className="relative flex flex-col items-center text-center px-8 pt-14 pb-10">
         <div className="relative mb-7">
           <div
@@ -642,17 +525,16 @@ function CopilotStandby() {
           Standing by
         </h3>
         <p className="mt-2 max-w-md text-[13.5px] leading-relaxed text-white/60">
-          Copilot is monitoring warehouse telemetry in real time. Complete your request on the left to run
-          capacity, cold-chain, expiry, and demand analysis.
+          Complete the request on the left to run the live backend reasoning engine and generate
+          a procurement decision with auditable evidence.
         </p>
 
-        {/* Capability grid */}
         <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full max-w-lg">
-          {capabilities.map((c) => {
-            const Icon = c.icon;
+          {capabilities.map((capability) => {
+            const Icon = capability.icon;
             return (
               <div
-                key={c.label}
+                key={capability.label}
                 className="group flex items-center justify-between rounded-xl border px-3.5 py-2.5 transition-colors hover:bg-white/[0.04]"
                 style={{
                   background: "color-mix(in oklab, #ffffff 3%, transparent)",
@@ -663,18 +545,17 @@ function CopilotStandby() {
                   <span
                     className="size-7 rounded-lg grid place-items-center shrink-0 transition-colors"
                     style={{
-                      background:
-                        "color-mix(in oklab, var(--color-primary) 20%, transparent)",
+                      background: "color-mix(in oklab, var(--color-primary) 20%, transparent)",
                       color: "color-mix(in oklab, var(--color-primary) 80%, #ffffff)",
                     }}
                   >
                     <Icon className="size-3.5" />
                   </span>
-                  <span className="text-[12.5px] text-white/80 truncate text-left">{c.label}</span>
+                  <span className="text-[12.5px] text-white/80 truncate text-left">{capability.label}</span>
                 </div>
                 <span className="inline-flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-emerald-300/90">
                   <span className="size-1 rounded-full bg-emerald-400" />
-                  {c.status}
+                  {capability.status}
                 </span>
               </div>
             );
@@ -682,17 +563,16 @@ function CopilotStandby() {
         </div>
       </div>
 
-      {/* Bottom telemetry */}
       <div className="relative px-6 pb-5">
         <div className="h-px w-full bg-gradient-to-r from-transparent via-white/15 to-transparent mb-3" />
         <div className="flex flex-wrap items-center justify-between gap-3 text-[10px] font-mono uppercase tracking-[0.18em] text-white/45">
           <span className="inline-flex items-center gap-1.5">
             <Radio className="size-3" />
-            4 zones · 12 sensors
+            4 tools registered
           </span>
           <span className="inline-flex items-center gap-1.5">
             <Activity className="size-3" />
-            Last scan · 2s ago
+            Live evidence collection
           </span>
           <span className="inline-flex items-center gap-1.5">
             <Lock className="size-3" />
@@ -704,4 +584,19 @@ function CopilotStandby() {
   );
 }
 
+function getErrorMessage(error: Error | null): string | null {
+  if (!error) {
+    return null;
+  }
 
+  if (error instanceof ApiError) {
+    if (typeof error.body?.detail === "string") {
+      return error.body.detail;
+    }
+    if (typeof error.body?.message === "string") {
+      return error.body.message;
+    }
+  }
+
+  return error.message;
+}

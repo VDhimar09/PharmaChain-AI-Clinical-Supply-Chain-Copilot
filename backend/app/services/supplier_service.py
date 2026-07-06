@@ -21,3 +21,13 @@ class SupplierService:
             db,
             supplier_data
         )
+
+    @staticmethod
+    def get_supplier_by_id(
+        db: Session,
+        supplier_id,
+    ):
+        return SupplierRepository.get_by_id(
+            db,
+            supplier_id,
+        )

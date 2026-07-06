@@ -44,6 +44,7 @@ class ReasoningEngine:
         logger.info("Executing plan with tools=%s", plan.tools)
 
         evidence = {}
+        tool_execution = []
 
         for tool_name in plan.tools:
             tool_started_at = perf_counter()
@@ -56,15 +57,40 @@ class ReasoningEngine:
                     message=message,
                     **context,
                 )
+                execution_time_ms = round(
+                    (perf_counter() - tool_started_at) * 1000,
+                    2,
+                )
 
                 evidence[tool_name] = result
+                tool_execution.append(
+                    {
+                        "tool": tool.display_name,
+                        "tool_key": tool_name,
+                        "status": "SUCCESS",
+                        "execution_time_ms": execution_time_ms,
+                        "data": result,
+                    }
+                )
                 logger.info(
                     "Tool execution completed: %s duration_ms=%.2f",
                     tool_name,
-                    (perf_counter() - tool_started_at) * 1000,
+                    execution_time_ms,
                 )
             except Exception as exc:
                 logger.exception("Tool execution failed: %s", tool_name)
+                tool_execution.append(
+                    {
+                        "tool": tool_name.replace("_", " ").title() + " Tool",
+                        "tool_key": tool_name,
+                        "status": "FAILED",
+                        "execution_time_ms": round(
+                            (perf_counter() - tool_started_at) * 1000,
+                            2,
+                        ),
+                        "data": {},
+                    }
+                )
                 raise ToolExecutionException(
                     f"Tool execution failed for '{tool_name}'."
                 ) from exc
@@ -79,4 +105,5 @@ class ReasoningEngine:
             "reasoning": plan.reasoning,
             "plan": plan.tools,
             "tool_results": evidence,
+            "tool_execution": tool_execution,
         }
