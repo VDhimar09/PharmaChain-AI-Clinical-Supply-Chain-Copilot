@@ -5,6 +5,8 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.dependencies.auth import require_permission
+from app.models.user import User
 
 from app.schemas.warehouse_zone import (
     WarehouseZoneCreate,
@@ -26,7 +28,10 @@ router = APIRouter(
     response_model=List[WarehouseZoneResponse]
 )
 def get_zones(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_permission("warehouse.read")
+    ),
 ):
     return WarehouseZoneService.get_zones(db)
 
@@ -34,7 +39,10 @@ def get_zones(
 # ⭐ NEW BUSINESS ENDPOINT
 @router.get("/capacity")
 def get_capacity_summary(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_permission("warehouse.read")
+    ),
 ):
     return WarehouseZoneService.get_capacity_summary(db)
 
@@ -45,7 +53,10 @@ def get_capacity_summary(
 )
 def get_zone_by_id(
     zone_id: UUID,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_permission("warehouse.read")
+    ),
 ):
     return WarehouseZoneService.get_zone_by_id(
         db,
@@ -59,7 +70,10 @@ def get_zone_by_id(
 )
 def create_zone(
     zone: WarehouseZoneCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_permission("warehouse.write")
+    ),
 ):
     return WarehouseZoneService.create_zone(
         db,
@@ -72,7 +86,10 @@ def create_zone(
 )
 def delete_zone(
     zone_id: UUID,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_permission("warehouse.write")
+    ),
 ):
     WarehouseZoneService.delete_zone(
         db,
