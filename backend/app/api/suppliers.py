@@ -6,6 +6,8 @@ from fastapi import Depends
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.dependencies.auth import require_permission
+from app.models.user import User
 
 from app.schemas.supplier import (
     SupplierCreate,
@@ -26,7 +28,10 @@ router = APIRouter(
     response_model=List[SupplierResponse]
 )
 def get_suppliers(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_permission("supplier.read")
+    ),
 ):
     return SupplierService.get_suppliers(db)
 
@@ -37,7 +42,10 @@ def get_suppliers(
 )
 def create_supplier(
     supplier: SupplierCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_permission("supplier.write")
+    ),
 ):
     return SupplierService.create_supplier(
         db,
