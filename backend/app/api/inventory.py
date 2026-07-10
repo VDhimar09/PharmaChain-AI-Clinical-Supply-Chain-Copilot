@@ -7,6 +7,8 @@ from fastapi import Depends
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.dependencies.auth import require_permission
+from app.models.user import User
 
 from app.schemas.inventory import (
     InventoryCreate,
@@ -27,25 +29,37 @@ router = APIRouter(
     response_model=List[InventoryResponse]
 )
 def get_inventory(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_permission("inventory.read")
+    ),
 ):
     return InventoryService.get_inventory(db)
 
 @router.get("/statistics")
 def get_inventory_statistics(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_permission("inventory.read")
+    ),
 ):
     return InventoryService.get_inventory_statistics(db)
 
 @router.get("/low-stock")
 def get_low_stock_products(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_permission("inventory.read")
+    ),
 ):
     return InventoryService.get_low_stock_products(db)
 
 @router.get("/expiring")
 def get_expiring_products(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_permission("inventory.read")
+    ),
 ):
     return InventoryService.get_expiring_products(db)
 
@@ -55,7 +69,10 @@ def get_expiring_products(
 )
 def get_inventory_by_id(
     inventory_id: UUID,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_permission("inventory.read")
+    ),
 ):
     return InventoryService.get_inventory_by_id(
         db,
@@ -69,7 +86,10 @@ def get_inventory_by_id(
 )
 def create_inventory(
     inventory: InventoryCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_permission("inventory.write")
+    ),
 ):
     return InventoryService.create_inventory(
         db,
@@ -82,7 +102,10 @@ def create_inventory(
 )
 def delete_inventory(
     inventory_id: UUID,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_permission("inventory.write")
+    ),
 ):
     InventoryService.delete_inventory(
         db,
