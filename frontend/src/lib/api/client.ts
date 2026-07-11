@@ -1,4 +1,9 @@
 import { ApiError, ApiErrorBody, ApiQueryParams } from "./types";
+import {
+  clearStoredAuthSession,
+  getStoredAuthSession,
+  setStoredAuthSession,
+} from "@/lib/auth/token-storage";
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -11,6 +16,8 @@ export interface ApiRequestOptions extends Omit<RequestInit, "body" | "headers">
   query?: ApiQueryParams;
   data?: unknown;
   headers?: HeadersInit;
+  skipAuthHeader?: boolean;
+  skipAuthRefresh?: boolean;
 }
 
 export class ApiClient {
@@ -32,8 +39,9 @@ export class ApiClient {
     return url.toString();
   }
 
-  private buildHeaders(customHeaders?: HeadersInit): Headers {
+  private buildHeaders(customHeaders?: HeadersInit, skipAuthHeader = false): Headers {
     const headers = new Headers(customHeaders);
+    const session = getStoredAuthSession();
 
     if (!headers.has("Accept")) {
       headers.set("Accept", "application/json");
@@ -41,6 +49,10 @@ export class ApiClient {
 
     if (!headers.has("Content-Type")) {
       headers.set("Content-Type", "application/json");
+    }
+
+    if (!skipAuthHeader && session?.accessToken && !headers.has("Authorization")) {
+      headers.set("Authorization", `Bearer ${session.accessToken}`);
     }
 
     return headers;
@@ -68,23 +80,84 @@ export class ApiClient {
   }
 
   async request<T = unknown>(path: string, options: ApiRequestOptions = {}): Promise<T> {
-    const { query, data, headers, ...fetchOptions } = options;
+    const {
+      query,
+      data,
+      headers,
+      skipAuthHeader,
+      skipAuthRefresh,
+      ...fetchOptions
+    } = options;
     const url = this.buildUrl(path, query);
 
     const init: RequestInit = {
       ...fetchOptions,
       method: fetchOptions.method ?? "GET",
-      headers: this.buildHeaders(headers),
+      headers: this.buildHeaders(headers, skipAuthHeader),
       credentials: fetchOptions.credentials ?? "same-origin",
       body: data !== undefined ? JSON.stringify(data) : undefined,
     };
 
     try {
       const response = await fetch(url, init);
+      if (
+        response.status === 401 &&
+        !skipAuthRefresh &&
+        !path.startsWith("/api/auth/")
+      ) {
+        const refreshed = await this.refreshAccessToken();
+
+        if (refreshed) {
+          return this.request<T>(path, {
+            ...options,
+            skipAuthRefresh: true,
+          });
+        }
+      }
+
       return this.parseResponse<T>(response);
     } catch (error) {
       console.error("[ApiClient] fetch error:", error);
       throw error;
+    }
+  }
+
+  private async refreshAccessToken(): Promise<boolean> {
+    const session = getStoredAuthSession();
+
+    if (!session?.refreshToken) {
+      clearStoredAuthSession();
+      return false;
+    }
+
+    try {
+      const response = await fetch(this.buildUrl("/api/auth/refresh"), {
+        method: "POST",
+        headers: this.buildHeaders(undefined, true),
+        credentials: "same-origin",
+        body: JSON.stringify({
+          refresh_token: session.refreshToken,
+        }),
+      });
+
+      if (!response.ok) {
+        clearStoredAuthSession();
+        return false;
+      }
+
+      const payload = await response.json();
+
+      setStoredAuthSession({
+        accessToken: payload.access_token,
+        refreshToken: payload.refresh_token,
+        user: payload.user,
+      });
+
+      return true;
+    } catch (error) {
+      console.error("[ApiClient] refresh error:", error);
+      clearStoredAuthSession();
+      return false;
     }
   }
 

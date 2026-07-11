@@ -1,6 +1,7 @@
-import { Link, Outlet, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Package, Warehouse, Truck, Sparkles, Bell, Search, Pill, BrainCircuit, MessagesSquare } from "lucide-react";
-import type { ReactNode } from "react";
+import { Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
+import { LayoutDashboard, Package, Warehouse, Truck, Sparkles, Bell, Search, Pill, BrainCircuit, MessagesSquare, LogOut } from "lucide-react";
+import { useEffect, type ReactNode } from "react";
+import { useAuth } from "@/lib/auth/auth-context";
 
 const nav = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -15,7 +16,43 @@ const nav = [
 
 export function AppLayout({ children }: { children?: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const navigate = useNavigate();
   const current = nav.find((n) => n.to === pathname) ?? nav[0];
+  const { isAuthenticated, isHydrated, isWorking, user, logout } = useAuth();
+
+  useEffect(() => {
+    if (isHydrated && !isAuthenticated) {
+      void navigate({
+        to: "/login",
+        replace: true,
+      });
+    }
+  }, [isAuthenticated, isHydrated, navigate]);
+
+  if (!isHydrated || !isAuthenticated) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <div className="w-full max-w-sm rounded-2xl border border-border/70 bg-card p-6 text-center shadow-sm">
+          <div className="mx-auto size-12 rounded-2xl bg-gradient-to-br from-teal to-info text-sidebar-primary-foreground grid place-items-center shadow-lg shadow-teal/20">
+            <Pill className="size-6" />
+          </div>
+          <h1 className="mt-4 text-xl font-bold font-[family-name:var(--font-heading)] text-foreground">
+            Authenticating
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Restoring your PharmaChain session.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const initials = user.full_name
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -90,9 +127,24 @@ export function AppLayout({ children }: { children?: ReactNode }) {
               <Bell className="size-4" />
               <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-destructive" />
             </button>
-            <div className="size-9 rounded-full bg-gradient-to-br from-primary to-teal text-primary-foreground grid place-items-center text-sm font-semibold">
-              DM
+            <div className="hidden lg:block text-right">
+              <div className="text-sm font-semibold text-foreground">{user.full_name}</div>
+              <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                {user.role}
+              </div>
             </div>
+            <div className="size-9 rounded-full bg-gradient-to-br from-primary to-teal text-primary-foreground grid place-items-center text-sm font-semibold">
+              {initials}
+            </div>
+            <button
+              type="button"
+              onClick={() => void logout()}
+              disabled={isWorking}
+              className="inline-flex items-center gap-2 rounded-md border bg-card px-3 py-2 text-sm font-medium hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <LogOut className="size-4" />
+              Logout
+            </button>
           </div>
         </header>
         <main key={pathname} className="page-in flex-1 p-4 md:p-8 overflow-x-hidden">{children ?? <Outlet />}</main>

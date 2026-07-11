@@ -1,4 +1,5 @@
 import { apiClient } from "./client";
+import type { AuthenticatedUser } from "@/lib/auth/token-storage";
 
 export type ShipmentStatus = "In Transit" | "Delivered" | "Delayed" | "Processing";
 
@@ -391,4 +392,36 @@ export type CopilotChatResponse = {
 export const copilotApi = {
   chat: (payload: CopilotChatRequest) =>
     apiClient.post<CopilotChatResponse>("/api/ai/copilot/chat", payload),
+};
+
+export type CurrentUser = AuthenticatedUser;
+
+export type LoginRequest = {
+  email: string;
+  password: string;
+};
+
+export type TokenResponse = {
+  access_token: string;
+  refresh_token: string;
+  token_type: "bearer";
+  expires_in: number;
+  refresh_expires_in: number;
+  user: CurrentUser;
+};
+
+export const authApi = {
+  login: (payload: LoginRequest) =>
+    apiClient.post<TokenResponse>("/api/auth/login", payload),
+  refresh: (refreshToken: string) =>
+    apiClient.post<TokenResponse>(
+      "/api/auth/refresh",
+      { refresh_token: refreshToken },
+    ),
+  logout: (refreshToken: string) =>
+    apiClient.post<void>(
+      "/api/auth/logout",
+      { refresh_token: refreshToken },
+    ),
+  me: () => apiClient.get<CurrentUser>("/api/auth/me"),
 };

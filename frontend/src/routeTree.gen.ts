@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WarehouseRouteImport } from './routes/warehouse'
 import { Route as ShipmentsRouteImport } from './routes/shipments'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as InventoryRouteImport } from './routes/inventory'
 import { Route as InsightsRouteImport } from './routes/insights'
 import { Route as CopilotRouteImport } from './routes/copilot'
@@ -25,6 +26,11 @@ const WarehouseRoute = WarehouseRouteImport.update({
 const ShipmentsRoute = ShipmentsRouteImport.update({
   id: '/shipments',
   path: '/shipments',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InventoryRoute = InventoryRouteImport.update({
@@ -59,6 +65,7 @@ export interface FileRoutesByFullPath {
   '/copilot': typeof CopilotRoute
   '/insights': typeof InsightsRoute
   '/inventory': typeof InventoryRoute
+  '/login': typeof LoginRoute
   '/shipments': typeof ShipmentsRoute
   '/warehouse': typeof WarehouseRoute
 }
@@ -68,6 +75,7 @@ export interface FileRoutesByTo {
   '/copilot': typeof CopilotRoute
   '/insights': typeof InsightsRoute
   '/inventory': typeof InventoryRoute
+  '/login': typeof LoginRoute
   '/shipments': typeof ShipmentsRoute
   '/warehouse': typeof WarehouseRoute
 }
@@ -78,6 +86,7 @@ export interface FileRoutesById {
   '/copilot': typeof CopilotRoute
   '/insights': typeof InsightsRoute
   '/inventory': typeof InventoryRoute
+  '/login': typeof LoginRoute
   '/shipments': typeof ShipmentsRoute
   '/warehouse': typeof WarehouseRoute
 }
@@ -89,6 +98,7 @@ export interface FileRouteTypes {
     | '/copilot'
     | '/insights'
     | '/inventory'
+    | '/login'
     | '/shipments'
     | '/warehouse'
   fileRoutesByTo: FileRoutesByTo
@@ -98,6 +108,7 @@ export interface FileRouteTypes {
     | '/copilot'
     | '/insights'
     | '/inventory'
+    | '/login'
     | '/shipments'
     | '/warehouse'
   id:
@@ -107,6 +118,7 @@ export interface FileRouteTypes {
     | '/copilot'
     | '/insights'
     | '/inventory'
+    | '/login'
     | '/shipments'
     | '/warehouse'
   fileRoutesById: FileRoutesById
@@ -117,6 +129,7 @@ export interface RootRouteChildren {
   CopilotRoute: typeof CopilotRoute
   InsightsRoute: typeof InsightsRoute
   InventoryRoute: typeof InventoryRoute
+  LoginRoute: typeof LoginRoute
   ShipmentsRoute: typeof ShipmentsRoute
   WarehouseRoute: typeof WarehouseRoute
 }
@@ -135,6 +148,13 @@ declare module '@tanstack/react-router' {
       path: '/shipments'
       fullPath: '/shipments'
       preLoaderRoute: typeof ShipmentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/inventory': {
@@ -181,6 +201,7 @@ const rootRouteChildren: RootRouteChildren = {
   CopilotRoute: CopilotRoute,
   InsightsRoute: InsightsRoute,
   InventoryRoute: InventoryRoute,
+  LoginRoute: LoginRoute,
   ShipmentsRoute: ShipmentsRoute,
   WarehouseRoute: WarehouseRoute,
 }
