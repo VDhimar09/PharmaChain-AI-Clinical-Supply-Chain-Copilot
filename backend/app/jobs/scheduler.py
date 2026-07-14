@@ -108,7 +108,11 @@ class SchedulerService:
             **interval_kwargs,
         )
 
-        job.next_execution = scheduler_job.next_run_time
+        job.next_execution = getattr(
+            scheduler_job,
+            "next_run_time",
+            None,
+        )
         self._registered_jobs[job.name] = RegisteredJob(
             job=job,
             trigger=interval_kwargs,
