@@ -7,6 +7,8 @@ from fastapi.testclient import TestClient
 from app.api.auth import router as auth_router
 from app.dependencies.auth import get_current_user
 from app.core.database import get_db
+from app.schemas.auth import TokenResponse
+from app.schemas.user import CurrentUserResponse
 
 
 def _create_test_app() -> FastAPI:
@@ -31,20 +33,20 @@ def test_login_endpoint_returns_tokens(monkeypatch):
 
     monkeypatch.setattr(
         "app.api.auth.AuthService.login",
-        lambda db, email, password: {
-            "access_token": "access",
-            "refresh_token": "refresh",
-            "token_type": "bearer",
-            "expires_in": 900,
-            "refresh_expires_in": 604800,
-            "user": {
-                "id": str(uuid4()),
-                "email": email,
-                "full_name": "Admin User",
-                "role": "Administrator",
-                "permissions": ["system.admin"],
-            },
-        },
+        lambda db, email, password: TokenResponse(
+            access_token="access",
+            refresh_token="refresh",
+            token_type="bearer",
+            expires_in=900,
+            refresh_expires_in=604800,
+            user=CurrentUserResponse(
+                id=uuid4(),
+                email=email,
+                full_name="Admin User",
+                role="Administrator",
+                permissions=["system.admin"],
+            ),
+        ),
     )
 
     response = client.post(

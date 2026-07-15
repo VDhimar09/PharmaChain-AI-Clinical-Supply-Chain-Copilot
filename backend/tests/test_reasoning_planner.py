@@ -1,6 +1,7 @@
 import pytest
 
 from app.ai.exceptions import PlanningException
+from app.ai.intent_engine import IntentEngine
 from app.ai.planner.execution_plan import ExecutionPlan
 from app.ai.planner.planner_context import PlannerContext
 from app.ai.planner.planning_strategy import PlanningStrategy
@@ -36,7 +37,7 @@ def test_reasoning_planner_builds_context_and_delegates() -> None:
     assert plan.tools == ["inventory"]
     assert strategy.last_context is not None
     assert strategy.last_context.user_message == "How much inventory do we have?"
-    assert strategy.last_context.detected_intent == "inventory"
+    assert strategy.last_context.detected_intent == IntentEngine.INVENTORY
     assert strategy.last_context.available_tools == ("inventory", "warehouse")
 
 
