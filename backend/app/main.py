@@ -5,6 +5,7 @@ import logging
 
 from app.core.database import engine
 from app.core.database import SessionLocal
+from app.core.config import settings
 from app.dependencies.auth import get_current_user
 from app.jobs.scheduler import get_scheduler_service
 
@@ -90,8 +91,8 @@ def shutdown_application():
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:5173",
+        origin.strip()
+        for origin in settings.CORS_ORIGINS.split(",")
     ],
     allow_credentials=True,
     allow_methods=["*"],

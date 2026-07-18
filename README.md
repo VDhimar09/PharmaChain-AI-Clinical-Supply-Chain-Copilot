@@ -1,3 +1,5 @@
+<!-- @format -->
+
 # 💊 PharmaChain – AI Clinical Supply Chain Copilot
 
 [![Python](https://img.shields.io/badge/Python-3.13-blue?logo=python&logoColor=white)](https://www.python.org/)
@@ -93,14 +95,14 @@ sequenceDiagram
 
 ## Tech Stack
 
-| Layer | Technologies |
-| --- | --- |
-| Backend | Python, FastAPI, SQLAlchemy, Pydantic Settings |
-| Frontend | React, TypeScript, Vite, Tailwind CSS |
-| Database | PostgreSQL |
-| AI Layer | IntentEngine, ReasoningPlanner, PlanningStrategy, RuleBasedPlanner, ReasoningEngine, ToolRegistry, ResponseComposer |
-| Testing | Pytest |
-| Documentation | Markdown, Mermaid |
+| Layer         | Technologies                                                                                                        |
+| ------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Backend       | Python, FastAPI, SQLAlchemy, Pydantic Settings                                                                      |
+| Frontend      | React, TypeScript, Vite, Tailwind CSS                                                                               |
+| Database      | PostgreSQL                                                                                                          |
+| AI Layer      | IntentEngine, ReasoningPlanner, PlanningStrategy, RuleBasedPlanner, ReasoningEngine, ToolRegistry, ResponseComposer |
+| Testing       | Pytest                                                                                                              |
+| Documentation | Markdown, Mermaid                                                                                                   |
 
 ## Project Structure
 
