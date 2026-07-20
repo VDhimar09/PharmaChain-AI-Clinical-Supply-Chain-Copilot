@@ -12,6 +12,10 @@ class WarehouseZoneRepository:
         return db.query(WarehouseZone).all()
 
     @staticmethod
+    def has_any(db: Session) -> bool:
+        return db.query(WarehouseZone.id).first() is not None
+
+    @staticmethod
     def get_by_id(
         db: Session,
         zone_id

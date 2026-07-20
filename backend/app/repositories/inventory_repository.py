@@ -18,6 +18,10 @@ class InventoryRepository:
         ).all()
 
     @staticmethod
+    def has_any(db: Session) -> bool:
+        return db.query(Inventory.id).first() is not None
+
+    @staticmethod
     def get_by_id(
         db: Session,
         inventory_id

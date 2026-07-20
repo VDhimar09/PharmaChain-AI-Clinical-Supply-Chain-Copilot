@@ -41,6 +41,7 @@ from app.api.audit import router as audit_router
 from app.api.system_jobs import router as system_jobs_router
 from app.api.auth import router as auth_router
 from app.services.bootstrap_service import BootstrapService
+from app.services.seed_data_service import SeedDataService
 
 
 logger = logging.getLogger(__name__)
@@ -60,6 +61,7 @@ def initialize_application():
     db = SessionLocal()
     try:
         BootstrapService.initialize_auth_data(db)
+        SeedDataService.seed_demo_data(db)
     finally:
         db.close()
 

@@ -11,6 +11,10 @@ class SupplierRepository:
         return db.query(Supplier).all()
 
     @staticmethod
+    def has_any(db: Session) -> bool:
+        return db.query(Supplier.id).first() is not None
+
+    @staticmethod
     def get_by_id(db: Session, supplier_id):
         return db.query(Supplier).filter(
             Supplier.id == supplier_id

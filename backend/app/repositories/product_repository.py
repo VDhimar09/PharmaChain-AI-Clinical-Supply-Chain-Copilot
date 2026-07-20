@@ -11,6 +11,10 @@ class ProductRepository:
         return db.query(Product).all()
 
     @staticmethod
+    def has_any(db: Session) -> bool:
+        return db.query(Product.id).first() is not None
+
+    @staticmethod
     def get_by_id(db: Session, product_id):
         return db.query(Product).filter(
             Product.id == product_id
