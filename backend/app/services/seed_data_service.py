@@ -4,15 +4,10 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+from app.models.inventory import Inventory
 from app.models.product import Product
 from app.models.supplier import Supplier
 from app.models.warehouse_zone import WarehouseZone
-from app.repositories.inventory_repository import InventoryRepository
-from app.repositories.product_repository import ProductRepository
-from app.repositories.supplier_repository import SupplierRepository
-from app.repositories.warehouse_zone_repository import (
-    WarehouseZoneRepository,
-)
 from app.schemas.inventory import InventoryCreate
 from app.schemas.product import ProductCreate
 from app.schemas.supplier import SupplierCreate
@@ -32,94 +27,111 @@ class SeedDataService:
 
     @staticmethod
     def seed_demo_data(db: Session) -> dict[str, Any]:
-        if SeedDataService._business_data_exists(db):
-            summary = SeedDataService._build_summary(
-                inserted_suppliers=0,
-                inserted_products=0,
-                inserted_warehouse_zones=0,
-                inserted_inventory=0,
-                skipped=True,
-            )
-            logger.info(
-                "SeedDataService skipped business data seeding because "
-                "existing data was detected: %s",
-                summary,
-            )
-            return summary
-
-        suppliers = SeedDataService._seed_suppliers(db)
-        products = SeedDataService._seed_products(db, suppliers)
-        warehouse_zones = SeedDataService._seed_warehouse_zones(db)
+        suppliers, inserted_suppliers = SeedDataService._seed_suppliers(db)
+        products, inserted_products = SeedDataService._seed_products(
+            db,
+            suppliers,
+        )
+        warehouse_zones, inserted_warehouse_zones = (
+            SeedDataService._seed_warehouse_zones(db)
+        )
         inserted_inventory = SeedDataService._seed_inventory(
             db,
             products,
             warehouse_zones,
         )
+        skipped = (
+            inserted_suppliers == 0
+            and inserted_products == 0
+            and inserted_warehouse_zones == 0
+            and inserted_inventory == 0
+        )
 
         summary = SeedDataService._build_summary(
-            inserted_suppliers=len(suppliers),
-            inserted_products=len(products),
-            inserted_warehouse_zones=len(warehouse_zones),
+            inserted_suppliers=inserted_suppliers,
+            inserted_products=inserted_products,
+            inserted_warehouse_zones=inserted_warehouse_zones,
             inserted_inventory=inserted_inventory,
-            skipped=False,
+            skipped=skipped,
         )
-        logger.info("SeedDataService inserted demo business data: %s", summary)
+        if skipped:
+            logger.info(
+                "SeedDataService found demo business data already present: %s",
+                summary,
+            )
+        else:
+            logger.info(
+                "SeedDataService seeded missing demo business data: %s",
+                summary,
+            )
         return summary
 
     @staticmethod
-    def _business_data_exists(db: Session) -> bool:
-        return any(
-            (
-                SupplierRepository.has_any(db),
-                ProductRepository.has_any(db),
-                WarehouseZoneRepository.has_any(db),
-                InventoryRepository.has_any(db),
-            )
-        )
-
-    @staticmethod
-    def _seed_suppliers(db: Session) -> dict[str, Supplier]:
+    def _seed_suppliers(
+        db: Session,
+    ) -> tuple[dict[str, Supplier], int]:
         suppliers_by_name: dict[str, Supplier] = {}
+        inserted_count = 0
 
         for supplier_data in SeedDataService._supplier_payloads():
-            supplier = SupplierService.create_supplier(
+            supplier = SeedDataService._get_supplier_by_name(
                 db,
-                supplier_data,
+                supplier_data.name,
             )
+            if supplier is None:
+                supplier = SupplierService.create_supplier(
+                    db,
+                    supplier_data,
+                )
+                inserted_count += 1
             suppliers_by_name[supplier.name] = supplier
 
-        return suppliers_by_name
+        return suppliers_by_name, inserted_count
 
     @staticmethod
     def _seed_products(
         db: Session,
         suppliers_by_name: dict[str, Supplier],
-    ) -> dict[str, Product]:
+    ) -> tuple[dict[str, Product], int]:
         products_by_sku: dict[str, Product] = {}
+        inserted_count = 0
 
         for product_data in SeedDataService._product_payloads(suppliers_by_name):
-            product = ProductService.create_product(
+            product = SeedDataService._get_product_by_sku(
                 db,
-                product_data,
+                product_data.sku,
             )
+            if product is None:
+                product = ProductService.create_product(
+                    db,
+                    product_data,
+                )
+                inserted_count += 1
             products_by_sku[product.sku] = product
 
-        return products_by_sku
+        return products_by_sku, inserted_count
 
     @staticmethod
     def _seed_warehouse_zones(
         db: Session,
-    ) -> dict[str, WarehouseZone]:
+    ) -> tuple[dict[str, WarehouseZone], int]:
         zones_by_name: dict[str, WarehouseZone] = {}
+        inserted_count = 0
 
         for zone_data in SeedDataService._warehouse_zone_payloads():
-            zone = WarehouseZoneService.create_zone(
+            zone = SeedDataService._get_warehouse_zone_by_name(
                 db,
-                zone_data,
+                zone_data.name,
             )
+            if zone is None:
+                zone = WarehouseZoneService.create_zone(
+                    db,
+                    zone_data,
+                )
+                inserted_count += 1
             zones_by_name[zone.name] = zone
 
-        return zones_by_name
+        return zones_by_name, inserted_count
 
     @staticmethod
     def _seed_inventory(
@@ -133,13 +145,59 @@ class SeedDataService:
             products_by_sku,
             zones_by_name,
         ):
-            InventoryService.create_inventory(
+            existing_inventory = SeedDataService._get_inventory_record(
                 db,
-                inventory_data,
+                product_id=inventory_data.product_id,
+                zone_id=inventory_data.zone_id,
+                batch_number=inventory_data.batch_number,
             )
-            inserted_count += 1
+            if existing_inventory is None:
+                InventoryService.create_inventory(
+                    db,
+                    inventory_data,
+                )
+                inserted_count += 1
 
         return inserted_count
+
+    @staticmethod
+    def _get_supplier_by_name(
+        db: Session,
+        name: str,
+    ) -> Supplier | None:
+        return db.query(Supplier).filter_by(name=name).first()
+
+    @staticmethod
+    def _get_product_by_sku(
+        db: Session,
+        sku: str,
+    ) -> Product | None:
+        return db.query(Product).filter_by(sku=sku).first()
+
+    @staticmethod
+    def _get_warehouse_zone_by_name(
+        db: Session,
+        name: str,
+    ) -> WarehouseZone | None:
+        return db.query(WarehouseZone).filter_by(name=name).first()
+
+    @staticmethod
+    def _get_inventory_record(
+        db: Session,
+        *,
+        product_id: Any,
+        zone_id: Any,
+        batch_number: str,
+    ) -> Inventory | None:
+        return (
+            db.query(Inventory)
+            .filter_by(
+                product_id=product_id,
+                zone_id=zone_id,
+                batch_number=batch_number,
+            )
+            .first()
+        )
 
     @staticmethod
     def _supplier_payloads() -> list[SupplierCreate]:
