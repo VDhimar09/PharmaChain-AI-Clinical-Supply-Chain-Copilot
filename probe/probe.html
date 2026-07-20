@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Fetch Probe</title>
+    <style>
+      body {
+        font-family: Consolas, monospace;
+        margin: 24px;
+        line-height: 1.4;
+      }
+
+      pre {
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Fetch Probe</h1>
+    <pre id="output">Running...</pre>
+    <script>
+      const output = document.getElementById("output");
+      const logs = [];
+
+      function recordLog(level, args) {
+        logs.push({
+          level,
+          message: args
+            .map((arg) => {
+              if (arg instanceof Error) {
+                return `${arg.name}: ${arg.message}`;
+              }
+              if (typeof arg === "string") {
+                return arg;
+              }
+              try {
+                return JSON.stringify(arg);
+              } catch {
+                return String(arg);
+              }
+            })
+            .join(" "),
+        });
+      }
+
+      const originalConsole = {
+        log: console.log.bind(console),
+        warn: console.warn.bind(console),
+        error: console.error.bind(console),
+      };
+
+      console.log = (...args) => {
+        recordLog("log", args);
+        originalConsole.log(...args);
+      };
+
+      console.warn = (...args) => {
+        recordLog("warn", args);
+        originalConsole.warn(...args);
+      };
+
+      console.error = (...args) => {
+        recordLog("error", args);
+        originalConsole.error(...args);
+      };
+
+      window.addEventListener("error", (event) => {
+        recordLog("window.error", [event.message]);
+      });
+
+      window.addEventListener("unhandledrejection", (event) => {
+        recordLog("unhandledrejection", [String(event.reason)]);
+      });
+
+      async function runProbe() {
+        const requestHeaders = {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        };
+
+        const result = {
+          location: window.location.href,
+          origin: window.location.origin,
+          targetUrl: "http://localhost:8000/api/auth/login",
+          requestMethod: "POST",
+          requestHeaders,
+          fetchOutcome: null,
+          responseStatus: null,
+          responseHeaders: null,
+          responseBody: null,
+          errorName: null,
+          errorMessage: null,
+          console: logs,
+        };
+
+        console.log("Starting fetch probe", {
+          origin: result.origin,
+          targetUrl: result.targetUrl,
+        });
+
+        try {
+          const response = await fetch(result.targetUrl, {
+            method: "POST",
+            headers: requestHeaders,
+            body: JSON.stringify({
+              email: "admin@pharmachain.com",
+              password: "ChangeMe123!",
+            }),
+          });
+
+          result.fetchOutcome = "http-response";
+          result.responseStatus = response.status;
+          result.responseHeaders = Object.fromEntries(response.headers.entries());
+          result.responseBody = await response.text();
+          console.log("Fetch received HTTP response", {
+            status: response.status,
+            headers: result.responseHeaders,
+          });
+        } catch (error) {
+          result.fetchOutcome = "threw";
+          result.errorName = error?.name ?? null;
+          result.errorMessage = error?.message ?? String(error);
+          console.error("Fetch threw", error);
+        }
+
+        output.textContent = JSON.stringify(result, null, 2);
+      }
+
+      runProbe();
+    </script>
+  </body>
+</html>
