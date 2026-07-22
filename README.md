@@ -1,198 +1,208 @@
-# 💊 PharmaChain – AI Clinical Supply Chain Copilot
+<div align="center">
 
-> Enterprise AI-powered Clinical Supply Chain Platform built with **FastAPI, React, PostgreSQL, and OpenAI**.
+# 🏥 PharmaChain
 
-PharmaChain is a production-oriented AI platform that helps pharmaceutical warehouses and procurement teams make explainable, data-driven decisions across inventory, warehouse operations, suppliers, shipments, and procurement.
+### Enterprise AI Clinical Supply Chain Copilot
 
-It demonstrates enterprise backend engineering, AI orchestration, secure authentication, and modern full-stack software development.
+AI-powered operational intelligence for pharmaceutical inventory, warehouse capacity,
+shipment monitoring and explainable procurement decision support.
 
----
+![Python](https://img.shields.io/badge/Python-3.13-blue?style=for-the-badge&logo=python)
+![FastAPI](https://img.shields.io/badge/FastAPI-Latest-009688?style=for-the-badge&logo=fastapi)
+![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=for-the-badge&logo=typescript)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue?style=for-the-badge&logo=postgresql)
+![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker)
 
-# 🚀 Live Demo
+Enterprise AI platform demonstrating modern backend engineering, explainable AI reasoning,
+clean architecture and full-stack application development.
 
-🌐 **Frontend:** https://pharma-chain-ai-clinical-supply-cha.vercel.app
-
-⚙️ **Backend API (Swagger):**
-https://pharmachain-backend.onrender.com/docs
-
-> **Demo access:** Available upon request.
-
----
-
-# 📸 Screenshots
-
-| Login | Dashboard |
-|--------|-----------|
-| *(Add screenshot)* | *(Add screenshot)* |
-
-| Inventory | AI Procurement |
-|------------|----------------|
-| *(Add screenshot)* | *(Add screenshot)* |
-
-| Executive Copilot | Warehouse |
-|-------------------|-----------|
-| *(Add screenshot)* | *(Add screenshot)* |
+</div>
 
 ---
 
-# ✨ Key Features
+# 📖 Overview
 
-## 🔐 Enterprise Security
+PharmaChain is an enterprise-inspired AI Clinical Supply Chain platform that demonstrates how operational intelligence can support pharmaceutical inventory management, warehouse optimisation, shipment monitoring and procurement decision-making.
 
+Unlike traditional chatbot demonstrations, PharmaChain uses a deterministic reasoning engine, planning strategy and modular tool orchestration to generate explainable recommendations backed by operational evidence.
+
+---
+
+# 🚀 Platform Overview
+
+<p align="center">
+<img src="assets/screenshots/dashboard.jpg" width="100%">
+</p>
+
+The Operations Dashboard provides a live command centre for pharmaceutical supply chain teams, surfacing inventory health, warehouse utilisation, shipment activity and AI-generated operational priorities.
+
+---
+
+# ✨ Core Modules
+
+| Module | Description |
+|---------|-------------|
+| 📊 Dashboard | Executive operational overview |
+| 📦 Inventory Intelligence | Monitor stock levels, expiry dates and shortages |
+| 🏭 Warehouse Capacity | Capacity forecasting and utilisation monitoring |
+| 🚚 Shipment Intelligence | Track inbound deliveries and shipment risks |
+| 🤖 AI Procurement Copilot | Explainable procurement recommendations |
+| 📈 AI Insights | Operational KPI summaries and critical alerts |
+| 💬 Executive Copilot | Natural language operational assistant |
+| 🔐 Security | JWT Authentication & Role-Based Access Control |
+
+---
+
+# 📸 Product Walkthrough
+
+## 📊 Operations Dashboard
+
+<p align="center">
+<img src="assets/screenshots/dashboard.jpg" width="100%">
+</p>
+
+Provides a real-time operational overview of inventory, warehouse capacity, shipment activity and AI-prioritised actions.
+
+---
+
+## 📦 Inventory Intelligence
+
+<p align="center">
+<img src="assets/screenshots/inventory.jpg" width="100%">
+</p>
+
+Predict stock shortages before they impact operations while monitoring expiry dates, safety stock and temperature-controlled inventory.
+
+---
+
+## 🏭 Warehouse Capacity Planning
+
+<p align="center">
+<img src="assets/screenshots/warehouse-capacity.jpg" width="100%">
+</p>
+
+Forecast warehouse utilisation, identify capacity risks and recommend proactive inventory balancing.
+
+---
+
+## 🚚 Shipment Intelligence
+
+<p align="center">
+<img src="assets/screenshots/shipments.jpg" width="100%">
+</p>
+
+Track inbound deliveries, detect shipment delays and identify operational risks before they impact inventory.
+
+---
+
+## 🤖 AI Procurement Copilot
+
+<p align="center">
+<img src="assets/screenshots/ai-procurement.jpg" width="100%">
+</p>
+
+Uses explainable reasoning across inventory, warehouse capacity, incoming shipments and supplier reliability to recommend procurement decisions.
+
+---
+
+## 📈 AI Operational Insights
+
+<p align="center">
+<img src="assets/screenshots/ai-insights.jpg" width="100%">
+</p>
+
+Transforms operational data into executive summaries, KPIs and prioritised alerts generated directly from the backend.
+
+---
+
+## 💬 Executive Copilot
+
+<p align="center">
+<img src="assets/screenshots/executive-copilot.jpg" width="100%">
+</p>
+
+Allows operational teams to ask natural language questions while providing transparent evidence and reasoning behind every response.
+
+---
+
+# 🏗 System Architecture
+
+```text
+                    React Frontend
+                           │
+                    REST API (FastAPI)
+                           │
+               Authentication & RBAC
+                           │
+                 Reasoning Orchestrator
+                           │
+                    Planning Engine
+                           │
+                    Tool Registry
+     ┌──────────────┬───────────────┬──────────────┐
+     │              │               │              │
+ Inventory      Warehouse       Shipment     Procurement
+   Tool            Tool            Tool          Tool
+     │              │               │              │
+     └──────────────┴───────────────┴──────────────┘
+                           │
+                      PostgreSQL
+```
+
+---
+
+# 🧠 AI Architecture
+
+The platform demonstrates an explainable AI workflow built around deterministic planning rather than opaque responses.
+
+**Workflow**
+
+1. User submits a request
+2. Intent Engine classifies the request
+3. Planning Engine selects execution strategy
+4. Tool Registry invokes the required operational services
+5. Business rules validate the evidence
+6. Response Composer generates an explainable recommendation
+
+---
+
+# ⚙ Technology Stack
+
+## Backend
+
+- Python 3.13
+- FastAPI
+- SQLAlchemy 2.0
+- PostgreSQL
+- Alembic
+- Pydantic
 - JWT Authentication
-- Refresh Token Rotation
 - Role-Based Access Control (RBAC)
-- Permission-based Authorization
-- Audit Logging
 
----
+## Frontend
 
-## 🤖 AI Capabilities
+- React
+- TypeScript
+- Tailwind CSS
+- TanStack Router
 
-- AI Procurement Copilot
-- Executive AI Copilot
-- Explainable AI Decisions
-- Multi-tool Reasoning Engine
-- Planning Strategy
-- Intent Detection
-- Tool Orchestration
-- Structured AI Responses
+## AI Components
 
----
+- Rule-Based Reasoning Engine
+- Planning Engine
+- Tool Registry
+- Response Composer
+- Operational Intelligence Engine
 
-## 📦 Supply Chain Modules
+## Infrastructure
 
-- Products
-- Suppliers
-- Inventory
-- Warehouse Capacity
-- Shipments
-- Procurement
-- Dashboard Analytics
-
----
-
-## ⚙️ Engineering Features
-
-- Clean Architecture
-- Repository-Service Pattern
-- Dependency Injection
-- SQLAlchemy ORM
-- Alembic Migrations
-- Swagger/OpenAPI
 - Docker
-- Docker Compose
-- GitHub Actions CI/CD
-- Pytest
-- Enterprise Logging
-
----
-
-# 🏗 Architecture
-
-```mermaid
-flowchart LR
-
-UI[React + TypeScript]
-
-API[FastAPI]
-
-AI[AI Reasoning Engine]
-
-DB[(PostgreSQL)]
-
-OPENAI[OpenAI]
-
-UI --> API
-
-API --> AI
-
-AI --> DB
-
-AI --> OPENAI
-
-API --> DB
-```
-
----
-
-# 🧠 AI Procurement Workflow
-
-```mermaid
-sequenceDiagram
-
-User->>Frontend: Submit Procurement Request
-
-Frontend->>Backend: POST /api/procurement-ai/evaluate
-
-Backend->>Inventory: Check Inventory
-
-Backend->>Warehouse: Check Capacity
-
-Backend->>Shipments: Check Incoming Deliveries
-
-Backend->>AI Engine: Rule-Based Reasoning
-
-AI Engine-->>Backend: Recommendation
-
-Backend-->>Frontend: APPROVE / REVIEW / REJECT
-
-Frontend-->>User: Explainable Decision
-```
-
----
-
-# 🛠 Tech Stack
-
-| Layer | Technologies |
-|--------|--------------|
-| Backend | Python, FastAPI, SQLAlchemy, Alembic |
-| Frontend | React, TypeScript, Tailwind CSS |
-| Database | PostgreSQL |
-| AI | OpenAI, Rule-Based AI, Tool Orchestration |
-| Security | JWT, RBAC, Password Hashing |
-| DevOps | Docker, GitHub Actions, Render, Vercel |
-| Testing | Pytest |
-| Documentation | Swagger, Mermaid |
-
----
-
-# 🚀 Production Status
-
-| Feature | Status |
-|----------|--------|
-| Frontend Deployment | ✅ |
-| Backend Deployment | ✅ |
-| PostgreSQL | ✅ |
-| JWT Authentication | ✅ |
-| RBAC | ✅ |
-| AI Procurement | ✅ |
-| Demo Data Seeding | ✅ |
-| Dashboard Live API | 🚧 |
-| Inventory Live API | 🚧 |
-| Warehouse Live API | 🚧 |
-| Shipments Live API | 🚧 |
-
----
-
-# 🧪 Testing
-
-The backend includes unit and integration tests covering:
-
-- Authentication
-- RBAC
-- Procurement AI
-- Repository Layer
-- Service Layer
-- Seed Data
-- API Endpoints
-
-Run locally:
-
-```bash
-cd backend
-python -m pytest
-```
+- Git
+- GitHub
+- GitHub Actions
+- Render
+- Vercel
 
 ---
 
@@ -200,155 +210,95 @@ python -m pytest
 
 ```text
 backend/
-    app/
-        api/
-        services/
-        repositories/
-        models/
-        ai/
-        schemas/
-        core/
-
 frontend/
-    src/
-        components/
-        routes/
-        lib/
-        hooks/
-
-.github/
+assets/
+ └── screenshots/
+docs/
+tests/
+docker-compose.yml
+README.md
 ```
+
+---
+
+# ⭐ Engineering Highlights
+
+- Enterprise Clean Architecture
+- Repository Pattern
+- Service Layer
+- Dependency Injection
+- Strategy Pattern
+- Modular AI Tool Registry
+- Explainable Operational Intelligence
+- RESTful APIs
+- OpenAPI Documentation
+- JWT Authentication
+- RBAC Authorization
+- Docker Support
+- GitHub Actions CI/CD
+- Unit Testing
+- Integration Testing
 
 ---
 
 # 🚀 Getting Started
 
-## Backend
-
 ```bash
-cd backend
+git clone https://github.com/VDhimar09/pharmachain.git
 
-python -m venv .venv
+cd pharmachain
 
-source .venv/bin/activate
-
-pip install -r requirements.txt
-
-uvicorn app.main:app --reload
+docker compose up --build
 ```
 
----
+Frontend
 
-## Frontend
-
-```bash
-cd frontend
-
-npm install
-
-npm run dev
+```
+http://localhost:5173
 ```
 
----
+Backend
 
-# 🔑 Environment Variables
-
-```env
-DATABASE_URL=
-
-JWT_SECRET_KEY=
-
-OPENAI_API_KEY=
-
-AZURE_OPENAI_ENDPOINT=
-
-AZURE_OPENAI_API_KEY=
+```
+http://localhost:8000
 ```
 
-Never commit `.env` files or secrets.
+API Documentation
 
----
-
-# 🎯 Engineering Highlights
-
-This project demonstrates:
-
-- Enterprise Backend Engineering
-- AI-Oriented Software Design
-- Clean Architecture
-- Repository-Service Pattern
-- SOLID Principles
-- Explainable AI
-- Enterprise Authentication
-- Modern Full Stack Development
-- CI/CD
-- Docker
-- Cloud Deployment
-- Production APIs
+```
+http://localhost:8000/docs
+```
 
 ---
 
 # 🗺 Roadmap
 
-## ✅ Completed
-
-- Authentication
-- JWT
-- Refresh Tokens
-- RBAC
-- AI Procurement
-- Executive Copilot
-- Explainable AI
-- Swagger
-- PostgreSQL
-- Docker
-- GitHub Actions
-- Production Deployment
-- Demo Data Seeding
-
-## 🚧 In Progress
-
-- Dashboard Live Data
-- Inventory Live Data
-- Warehouse Live Data
-- Shipments Live Data
-
-## 🔮 Planned
-
-- LLM Planning
-- Conversation Memory
-- Human Approval Workflow
-- Observability Dashboard
-- Multi-Agent Collaboration
-
----
-
-# 👩‍💻 About Me
-
-**Vibhuti Dhimar**
-
-AI Software Engineer | Python Backend Engineer | Full Stack AI Engineer
-
-📍 Leicester, United Kingdom
-
-🔗 LinkedIn: https://www.linkedin.com/in/vibhuti-dhimar/
-
-💻 GitHub: https://github.com/VDhimar09
-
-🌐 Portfolio: https://vibhuti-ai-platform.vercel.app
-
----
-
-# ⭐ Why I Built PharmaChain
-
-Pharmaceutical supply chains require secure, explainable, and reliable decision support.
-
-PharmaChain was designed to demonstrate how modern AI can augment—not replace—human decision-making by combining enterprise software engineering with transparent AI reasoning.
-
-The project showcases production-ready backend engineering, full-stack development, secure authentication, and AI-assisted procurement workflows suitable for regulated healthcare environments.
+- ✅ Inventory Intelligence
+- ✅ Warehouse Capacity Planning
+- ✅ Shipment Intelligence
+- ✅ AI Procurement Copilot
+- ✅ AI Operational Insights
+- ✅ Executive Copilot
+- ✅ JWT Authentication
+- ✅ Role-Based Access Control
+- 🚧 OpenAI Integration
+- 🚧 Retrieval-Augmented Generation (RAG)
+- 🚧 Multi-Agent Workflows
+- 🚧 Kubernetes Deployment
+- 🚧 Observability & Monitoring
 
 ---
 
 # 📄 License
 
-MIT License
+This project is available under the MIT License.
+
+---
+
+<div align="center">
+
+**Built by Vibhuti Dhimar**
+
+AI Software Engineer • Product Engineer • NHS Tech Returner
+
+</div>
