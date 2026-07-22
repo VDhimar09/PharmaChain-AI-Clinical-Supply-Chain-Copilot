@@ -4,19 +4,18 @@
 
 ### Enterprise AI Clinical Supply Chain Copilot
 
-AI-powered operational intelligence platform for pharmaceutical inventory, warehouse management, shipment intelligence and explainable procurement decision support.
-
----
+AI-powered operational intelligence for pharmaceutical inventory, warehouse capacity,
+shipment monitoring and explainable procurement decision support.
 
 ![Python](https://img.shields.io/badge/Python-3.13-blue?style=for-the-badge&logo=python)
 ![FastAPI](https://img.shields.io/badge/FastAPI-Latest-009688?style=for-the-badge&logo=fastapi)
 ![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react)
-![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?style=for-the-badge&logo=postgresql)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=for-the-badge&logo=typescript)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue?style=for-the-badge&logo=postgresql)
 ![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker)
-![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
-**Enterprise AI • Explainable Decision Support • Full Stack Engineering • Clean Architecture**
+Enterprise AI platform demonstrating modern backend engineering, explainable AI reasoning,
+clean architecture and full-stack application development.
 
 </div>
 
@@ -24,37 +23,9 @@ AI-powered operational intelligence platform for pharmaceutical inventory, wareh
 
 # 📖 Overview
 
-PharmaChain is an enterprise-inspired AI Clinical Supply Chain platform designed to demonstrate how modern software engineering and explainable artificial intelligence can support pharmaceutical operations.
+PharmaChain is an enterprise-inspired AI Clinical Supply Chain platform that demonstrates how operational intelligence can support pharmaceutical inventory management, warehouse optimisation, shipment monitoring and procurement decision-making.
 
-The platform combines operational data, deterministic reasoning and modular AI orchestration to assist with:
-
-- 📦 Inventory Management
-- 🏭 Warehouse Capacity Planning
-- 🚚 Shipment Monitoring
-- 🤖 Procurement Decision Support
-- 📈 Executive Operational Intelligence
-- 💬 Natural Language AI Copilot
-
-Unlike traditional AI chatbot demos, PharmaChain focuses on **transparent decision-making** by combining business rules, operational evidence and explainable reasoning.
-
----
-
-# 🎯 Why PharmaChain?
-
-Pharmaceutical supply chains are among the most complex operational environments.
-
-Organisations must constantly balance:
-
-- Inventory shortages
-- Cold-chain compliance
-- Warehouse utilisation
-- Incoming shipments
-- Procurement decisions
-- Regulatory requirements
-
-Poor operational decisions can result in delayed treatments, increased costs and unnecessary waste.
-
-PharmaChain demonstrates how AI can assist operational teams by providing explainable recommendations while keeping humans in control of critical decisions.
+Unlike traditional chatbot demonstrations, PharmaChain uses a deterministic reasoning engine, planning strategy and modular tool orchestration to generate explainable recommendations backed by operational evidence.
 
 ---
 
@@ -64,36 +35,34 @@ PharmaChain demonstrates how AI can assist operational teams by providing explai
 <img src="assets/screenshots/dashboard.jpg" width="100%">
 </p>
 
-The Operations Dashboard acts as the command centre for the platform, providing a real-time overview of inventory health, warehouse utilisation, shipment activity and AI-generated operational insights.
+The Operations Dashboard provides a live command centre for pharmaceutical supply chain teams, surfacing inventory health, warehouse utilisation, shipment activity and AI-generated operational priorities.
 
 ---
 
-# ✨ Core Capabilities
+# ✨ Core Modules
 
-| Capability | Description |
-|------------|-------------|
-| 📊 Executive Dashboard | Real-time operational visibility across the supply chain |
-| 📦 Inventory Intelligence | Monitor stock levels, expiry dates and inventory health |
-| 🏭 Warehouse Capacity Planning | Track occupancy and optimise warehouse utilisation |
-| 🚚 Shipment Intelligence | Monitor inbound shipments and detect delivery risks |
-| 🤖 AI Procurement Copilot | Generate explainable procurement recommendations |
-| 📈 AI Operational Insights | Executive summaries generated from operational data |
-| 💬 Executive AI Copilot | Natural language assistant for operational teams |
-| 🔐 Enterprise Security | JWT Authentication and Role-Based Access Control |
+| Module | Description |
+|---------|-------------|
+| 📊 Dashboard | Executive operational overview |
+| 📦 Inventory Intelligence | Monitor stock levels, expiry dates and shortages |
+| 🏭 Warehouse Capacity | Capacity forecasting and utilisation monitoring |
+| 🚚 Shipment Intelligence | Track inbound deliveries and shipment risks |
+| 🤖 AI Procurement Copilot | Explainable procurement recommendations |
+| 📈 AI Insights | Operational KPI summaries and critical alerts |
+| 💬 Executive Copilot | Natural language operational assistant |
+| 🔐 Security | JWT Authentication & Role-Based Access Control |
 
 ---
 
 # 📸 Product Walkthrough
 
----
-
-## 📊 Executive Operations Dashboard
+## 📊 Operations Dashboard
 
 <p align="center">
 <img src="assets/screenshots/dashboard.jpg" width="100%">
 </p>
 
-The dashboard provides a comprehensive operational overview by combining inventory metrics, warehouse utilisation, shipment activity and AI-generated alerts into a single executive workspace.
+Provides a real-time operational overview of inventory, warehouse capacity, shipment activity and AI-prioritised actions.
 
 ---
 
@@ -103,13 +72,7 @@ The dashboard provides a comprehensive operational overview by combining invento
 <img src="assets/screenshots/inventory.jpg" width="100%">
 </p>
 
-Key capabilities include:
-
-- Low-stock monitoring
-- Inventory health analysis
-- Product expiry tracking
-- Temperature-controlled inventory
-- Stock availability insights
+Predict stock shortages before they impact operations while monitoring expiry dates, safety stock and temperature-controlled inventory.
 
 ---
 
@@ -119,13 +82,7 @@ Key capabilities include:
 <img src="assets/screenshots/warehouse-capacity.jpg" width="100%">
 </p>
 
-Warehouse intelligence provides:
-
-- Occupancy monitoring
-- Capacity forecasting
-- Storage optimisation
-- Utilisation analytics
-- Operational recommendations
+Forecast warehouse utilisation, identify capacity risks and recommend proactive inventory balancing.
 
 ---
 
@@ -135,13 +92,7 @@ Warehouse intelligence provides:
 <img src="assets/screenshots/shipments.jpg" width="100%">
 </p>
 
-Shipment monitoring enables teams to:
-
-- Track inbound deliveries
-- Monitor shipment status
-- Detect operational risks
-- Improve supply visibility
-- Support procurement planning
+Track inbound deliveries, detect shipment delays and identify operational risks before they impact inventory.
 
 ---
 
@@ -151,15 +102,7 @@ Shipment monitoring enables teams to:
 <img src="assets/screenshots/ai-procurement.jpg" width="100%">
 </p>
 
-The AI Procurement Copilot analyses:
-
-- Inventory levels
-- Warehouse capacity
-- Incoming shipments
-- Business rules
-- Procurement policies
-
-to generate transparent procurement recommendations backed by operational evidence.
+Uses explainable reasoning across inventory, warehouse capacity, incoming shipments and supplier reliability to recommend procurement decisions.
 
 ---
 
@@ -169,53 +112,193 @@ to generate transparent procurement recommendations backed by operational eviden
 <img src="assets/screenshots/ai-insights.jpg" width="100%">
 </p>
 
-The AI Insights module transforms operational data into executive summaries, performance indicators and prioritised recommendations for supply chain teams.
+Transforms operational data into executive summaries, KPIs and prioritised alerts generated directly from the backend.
 
 ---
 
-## 💬 Executive AI Copilot
+## 💬 Executive Copilot
 
 <p align="center">
 <img src="assets/screenshots/executive-copilot.jpg" width="100%">
 </p>
 
-The Executive Copilot allows users to ask natural language questions about operational performance while providing explainable responses supported by backend reasoning and evidence.
+Allows operational teams to ask natural language questions while providing transparent evidence and reasoning behind every response.
 
 ---
 
-# 🌟 Key Highlights
+# 🏗 System Architecture
 
-✅ Enterprise-inspired software architecture
-
-✅ Explainable AI reasoning
-
-✅ Modular backend services
-
-✅ Clean Architecture principles
-
-✅ Repository Pattern
-
-✅ Service Layer architecture
-
-✅ JWT Authentication
-
-✅ Role-Based Access Control (RBAC)
-
-✅ RESTful API design
-
-✅ PostgreSQL database
-
-✅ Docker-ready deployment
-
-✅ Modern React frontend
+```text
+                    React Frontend
+                           │
+                    REST API (FastAPI)
+                           │
+               Authentication & RBAC
+                           │
+                 Reasoning Orchestrator
+                           │
+                    Planning Engine
+                           │
+                    Tool Registry
+     ┌──────────────┬───────────────┬──────────────┐
+     │              │               │              │
+ Inventory      Warehouse       Shipment     Procurement
+   Tool            Tool            Tool          Tool
+     │              │               │              │
+     └──────────────┴───────────────┴──────────────┘
+                           │
+                      PostgreSQL
+```
 
 ---
 
-> **Part 2 will continue with:**
->
-> - 🏗 Enterprise Architecture
-> - 🧠 AI Reasoning Engine
-> - ⚙ Technology Stack
-> - 📂 Project Structure
-> - 🔐 Security
-> - 📡 API Design
+# 🧠 AI Architecture
+
+The platform demonstrates an explainable AI workflow built around deterministic planning rather than opaque responses.
+
+**Workflow**
+
+1. User submits a request
+2. Intent Engine classifies the request
+3. Planning Engine selects execution strategy
+4. Tool Registry invokes the required operational services
+5. Business rules validate the evidence
+6. Response Composer generates an explainable recommendation
+
+---
+
+# ⚙ Technology Stack
+
+## Backend
+
+- Python 3.13
+- FastAPI
+- SQLAlchemy 2.0
+- PostgreSQL
+- Alembic
+- Pydantic
+- JWT Authentication
+- Role-Based Access Control (RBAC)
+
+## Frontend
+
+- React
+- TypeScript
+- Tailwind CSS
+- TanStack Router
+
+## AI Components
+
+- Rule-Based Reasoning Engine
+- Planning Engine
+- Tool Registry
+- Response Composer
+- Operational Intelligence Engine
+
+## Infrastructure
+
+- Docker
+- Git
+- GitHub
+- GitHub Actions
+- Render
+- Vercel
+
+---
+
+# 📂 Project Structure
+
+```text
+backend/
+frontend/
+assets/
+ └── screenshots/
+docs/
+tests/
+docker-compose.yml
+README.md
+```
+
+---
+
+# ⭐ Engineering Highlights
+
+- Enterprise Clean Architecture
+- Repository Pattern
+- Service Layer
+- Dependency Injection
+- Strategy Pattern
+- Modular AI Tool Registry
+- Explainable Operational Intelligence
+- RESTful APIs
+- OpenAPI Documentation
+- JWT Authentication
+- RBAC Authorization
+- Docker Support
+- GitHub Actions CI/CD
+- Unit Testing
+- Integration Testing
+
+---
+
+# 🚀 Getting Started
+
+```bash
+git clone https://github.com/VDhimar09/pharmachain.git
+
+cd pharmachain
+
+docker compose up --build
+```
+
+Frontend
+
+```
+http://localhost:5173
+```
+
+Backend
+
+```
+http://localhost:8000
+```
+
+API Documentation
+
+```
+http://localhost:8000/docs
+```
+
+---
+
+# 🗺 Roadmap
+
+- ✅ Inventory Intelligence
+- ✅ Warehouse Capacity Planning
+- ✅ Shipment Intelligence
+- ✅ AI Procurement Copilot
+- ✅ AI Operational Insights
+- ✅ Executive Copilot
+- ✅ JWT Authentication
+- ✅ Role-Based Access Control
+- 🚧 OpenAI Integration
+- 🚧 Retrieval-Augmented Generation (RAG)
+- 🚧 Multi-Agent Workflows
+- 🚧 Kubernetes Deployment
+- 🚧 Observability & Monitoring
+
+---
+
+# 📄 License
+
+This project is available under the MIT License.
+
+---
+
+<div align="center">
+
+**Built by Vibhuti Dhimar**
+
+AI Software Engineer • Product Engineer • NHS Tech Returner
+
+</div>
