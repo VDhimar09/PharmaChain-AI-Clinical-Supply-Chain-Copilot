@@ -1,205 +1,181 @@
-<div align="center">
 
 # 🏥 PharmaChain
 
-### Enterprise AI Clinical Supply Chain Copilot
+## Enterprise AI Clinical Supply Chain Copilot
 
-AI-powered operational intelligence for pharmaceutical inventory, warehouse capacity,
-shipment monitoring and explainable procurement decision support.
+> **AI-powered operational intelligence platform for pharmaceutical inventory, warehouse management, shipment monitoring and explainable procurement decision support.**
 
 ![Python](https://img.shields.io/badge/Python-3.13-blue?style=for-the-badge&logo=python)
 ![FastAPI](https://img.shields.io/badge/FastAPI-Latest-009688?style=for-the-badge&logo=fastapi)
 ![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react)
-![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=for-the-badge&logo=typescript)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue?style=for-the-badge&logo=postgresql)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?style=for-the-badge&logo=postgresql)
 ![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker)
-
-Enterprise AI platform demonstrating modern backend engineering, explainable AI reasoning,
-clean architecture and full-stack application development.
-
-</div>
+![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
 ---
 
 # 📖 Overview
 
-PharmaChain is an enterprise-inspired AI Clinical Supply Chain platform that demonstrates how operational intelligence can support pharmaceutical inventory management, warehouse optimisation, shipment monitoring and procurement decision-making.
+PharmaChain is an enterprise-inspired AI platform demonstrating how modern software engineering and explainable AI can support pharmaceutical supply chain operations.
 
-Unlike traditional chatbot demonstrations, PharmaChain uses a deterministic reasoning engine, planning strategy and modular tool orchestration to generate explainable recommendations backed by operational evidence.
+The platform combines FastAPI, React, PostgreSQL and a modular AI reasoning engine to provide operational visibility across inventory, warehousing, procurement and logistics.
+
+## 🎯 Key Features
+
+- 📊 Executive Operations Dashboard
+- 📦 Inventory Intelligence
+- 🏭 Warehouse Capacity Planning
+- 🚚 Shipment Intelligence
+- 🤖 AI Procurement Copilot
+- 📈 AI Operational Insights
+- 💬 Executive AI Copilot
+- 🔐 JWT Authentication
+- 🛡️ Role-Based Access Control (RBAC)
+- 🐳 Docker Ready
 
 ---
 
-# 🚀 Platform Overview
+# 📸 Product Overview
+
+## Executive Dashboard
 
 <p align="center">
 <img src="assets/screenshots/dashboard.jpg" width="100%">
 </p>
 
-The Operations Dashboard provides a live command centre for pharmaceutical supply chain teams, surfacing inventory health, warehouse utilisation, shipment activity and AI-generated operational priorities.
+Real-time operational overview with KPIs, inventory health, warehouse utilisation and AI-generated recommendations.
 
 ---
 
-# ✨ Core Modules
-
-| Module | Description |
-|---------|-------------|
-| 📊 Dashboard | Executive operational overview |
-| 📦 Inventory Intelligence | Monitor stock levels, expiry dates and shortages |
-| 🏭 Warehouse Capacity | Capacity forecasting and utilisation monitoring |
-| 🚚 Shipment Intelligence | Track inbound deliveries and shipment risks |
-| 🤖 AI Procurement Copilot | Explainable procurement recommendations |
-| 📈 AI Insights | Operational KPI summaries and critical alerts |
-| 💬 Executive Copilot | Natural language operational assistant |
-| 🔐 Security | JWT Authentication & Role-Based Access Control |
-
----
-
-# 📸 Product Walkthrough
-
-## 📊 Operations Dashboard
-
-<p align="center">
-<img src="assets/screenshots/dashboard.jpg" width="100%">
-</p>
-
-Provides a real-time operational overview of inventory, warehouse capacity, shipment activity and AI-prioritised actions.
-
----
-
-## 📦 Inventory Intelligence
+## Inventory Intelligence
 
 <p align="center">
 <img src="assets/screenshots/inventory.jpg" width="100%">
 </p>
 
-Predict stock shortages before they impact operations while monitoring expiry dates, safety stock and temperature-controlled inventory.
+Monitor stock levels, expiry dates, low-stock alerts and product availability.
 
 ---
 
-## 🏭 Warehouse Capacity Planning
+## Warehouse Capacity Planning
 
 <p align="center">
 <img src="assets/screenshots/warehouse-capacity.jpg" width="100%">
 </p>
 
-Forecast warehouse utilisation, identify capacity risks and recommend proactive inventory balancing.
+Forecast warehouse occupancy and optimise storage utilisation.
 
 ---
 
-## 🚚 Shipment Intelligence
+## Shipment Intelligence
 
 <p align="center">
 <img src="assets/screenshots/shipments.jpg" width="100%">
 </p>
 
-Track inbound deliveries, detect shipment delays and identify operational risks before they impact inventory.
+Track inbound deliveries and identify shipment risks.
 
 ---
 
-## 🤖 AI Procurement Copilot
+## AI Procurement Copilot
 
 <p align="center">
 <img src="assets/screenshots/ai-procurement.jpg" width="100%">
 </p>
 
-Uses explainable reasoning across inventory, warehouse capacity, incoming shipments and supplier reliability to recommend procurement decisions.
+Generate explainable procurement recommendations using inventory, warehouse and shipment evidence.
 
 ---
 
-## 📈 AI Operational Insights
+## AI Operational Insights
 
 <p align="center">
 <img src="assets/screenshots/ai-insights.jpg" width="100%">
 </p>
 
-Transforms operational data into executive summaries, KPIs and prioritised alerts generated directly from the backend.
+Executive summaries and operational intelligence generated from backend data.
 
 ---
 
-## 💬 Executive Copilot
+## Executive AI Copilot
 
 <p align="center">
 <img src="assets/screenshots/executive-copilot.jpg" width="100%">
 </p>
 
-Allows operational teams to ask natural language questions while providing transparent evidence and reasoning behind every response.
+Natural language operational assistant with explainable responses.
 
 ---
 
-# 🏗 System Architecture
+# 🏗️ System Architecture
 
 ```text
-                    React Frontend
-                           │
-                    REST API (FastAPI)
-                           │
-               Authentication & RBAC
-                           │
-                 Reasoning Orchestrator
-                           │
-                    Planning Engine
-                           │
-                    Tool Registry
-     ┌──────────────┬───────────────┬──────────────┐
-     │              │               │              │
- Inventory      Warehouse       Shipment     Procurement
-   Tool            Tool            Tool          Tool
-     │              │               │              │
-     └──────────────┴───────────────┴──────────────┘
-                           │
-                      PostgreSQL
+React Frontend
+      │
+ FastAPI REST API
+      │
+ Authentication & RBAC
+      │
+ AI Reasoning Engine
+      │
+ Planning Engine
+      │
+ Tool Registry
+ ├── Inventory Tool
+ ├── Warehouse Tool
+ ├── Shipment Tool
+ └── Procurement Tool
+      │
+ PostgreSQL
+```
+
+## AI Workflow
+
+```text
+User Request
+     │
+Intent Detection
+     │
+Planning Engine
+     │
+Tool Selection
+     │
+Business Rules
+     │
+Evidence Collection
+     │
+Response Composer
+     │
+Explainable Recommendation
 ```
 
 ---
 
-# 🧠 AI Architecture
-
-The platform demonstrates an explainable AI workflow built around deterministic planning rather than opaque responses.
-
-**Workflow**
-
-1. User submits a request
-2. Intent Engine classifies the request
-3. Planning Engine selects execution strategy
-4. Tool Registry invokes the required operational services
-5. Business rules validate the evidence
-6. Response Composer generates an explainable recommendation
-
----
-
-# ⚙ Technology Stack
+# 🛠️ Technology Stack
 
 ## Backend
-
 - Python 3.13
 - FastAPI
-- SQLAlchemy 2.0
+- SQLAlchemy
 - PostgreSQL
 - Alembic
 - Pydantic
 - JWT Authentication
-- Role-Based Access Control (RBAC)
 
 ## Frontend
-
 - React
 - TypeScript
 - Tailwind CSS
-- TanStack Router
 
-## AI Components
-
-- Rule-Based Reasoning Engine
+## AI
+- Rule-Based Reasoning
 - Planning Engine
 - Tool Registry
 - Response Composer
-- Operational Intelligence Engine
 
-## Infrastructure
-
+## DevOps
 - Docker
-- Git
-- GitHub
 - GitHub Actions
 - Render
 - Vercel
@@ -212,93 +188,112 @@ The platform demonstrates an explainable AI workflow built around deterministic 
 backend/
 frontend/
 assets/
- └── screenshots/
+└── screenshots/
 docs/
 tests/
-docker-compose.yml
 README.md
+docker-compose.yml
 ```
-
----
-
-# ⭐ Engineering Highlights
-
-- Enterprise Clean Architecture
-- Repository Pattern
-- Service Layer
-- Dependency Injection
-- Strategy Pattern
-- Modular AI Tool Registry
-- Explainable Operational Intelligence
-- RESTful APIs
-- OpenAPI Documentation
-- JWT Authentication
-- RBAC Authorization
-- Docker Support
-- GitHub Actions CI/CD
-- Unit Testing
-- Integration Testing
 
 ---
 
 # 🚀 Getting Started
 
+## Clone
+
 ```bash
-git clone https://github.com/VDhimar09/pharmachain.git
+git clone https://github.com/VDhimar09/PharmaChain-AI-Clinical-Supply-Chain-Copilot.git
+cd PharmaChain-AI-Clinical-Supply-Chain-Copilot
+```
 
-cd pharmachain
+## Backend
 
+```bash
+cd backend
+python -m venv .venv
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+```
+
+## Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+## Docker
+
+```bash
 docker compose up --build
-```
-
-Frontend
-
-```
-http://localhost:5173
-```
-
-Backend
-
-```
-http://localhost:8000
-```
-
-API Documentation
-
-```
-http://localhost:8000/docs
 ```
 
 ---
 
-# 🗺 Roadmap
+# 🌐 Local URLs
 
-- ✅ Inventory Intelligence
-- ✅ Warehouse Capacity Planning
-- ✅ Shipment Intelligence
-- ✅ AI Procurement Copilot
-- ✅ AI Operational Insights
-- ✅ Executive Copilot
-- ✅ JWT Authentication
-- ✅ Role-Based Access Control
-- 🚧 OpenAI Integration
-- 🚧 Retrieval-Augmented Generation (RAG)
-- 🚧 Multi-Agent Workflows
-- 🚧 Kubernetes Deployment
-- 🚧 Observability & Monitoring
+| Service | URL |
+|---------|-----|
+| Frontend | http://localhost:5173 |
+| Backend | http://localhost:8000 |
+| API Docs | http://localhost:8000/docs |
+
+---
+
+# 🔐 Security
+
+- JWT Authentication
+- Refresh Tokens
+- Password Hashing
+- RBAC
+- Protected API Endpoints
+
+---
+
+# 🧪 Testing
+
+```bash
+pytest
+```
+
+---
+
+# 🗺️ Roadmap
+
+## Completed
+
+- Dashboard
+- Inventory Intelligence
+- Warehouse Capacity
+- Shipment Intelligence
+- AI Procurement Copilot
+- AI Operational Insights
+- Executive Copilot
+- JWT Authentication
+- RBAC
+
+## Planned
+
+- OpenAI Integration
+- Azure OpenAI
+- Retrieval-Augmented Generation (RAG)
+- Redis
+- Kubernetes
+- Monitoring & Observability
+
+---
+
+# 👩‍💻 Author
+
+**Vibhuti Dhimar**
+
+AI Software Engineer • Product Engineer • NHS Tech Returner
+
+This project showcases enterprise software engineering principles, explainable AI and full-stack development through a realistic pharmaceutical supply chain platform.
 
 ---
 
 # 📄 License
 
-This project is available under the MIT License.
-
----
-
-<div align="center">
-
-**Built by Vibhuti Dhimar**
-
-AI Software Engineer • Product Engineer • NHS Tech Returner
-
-</div>
+Licensed under the MIT License.
