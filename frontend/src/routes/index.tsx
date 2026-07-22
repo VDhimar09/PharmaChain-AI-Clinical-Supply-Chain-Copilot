@@ -40,6 +40,7 @@ import {
   ReferenceLine,
 } from "recharts";
 import { inventoryTrend, zones } from "@/lib/mock-data";
+import { useDashboardSummary } from "@/lib/api/hooks";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -116,29 +117,16 @@ type Kpi = {
   value: string;
   unit?: string;
   caption: string;
-  delta: string;
-  up: boolean;
-  positive: boolean;
+  delta?: string;
+  up?: boolean;
+  positive?: boolean;
   icon: React.ComponentType<{ className?: string }>;
   tint: string; // tailwind gradient stops via arbitrary color-mix
   stroke: string;
-  spark: number[];
+  spark?: number[];
 };
 
 const kpis: Kpi[] = [
-  {
-    label: "Total Inventory",
-    value: "47,820",
-    unit: "units",
-    caption: "Across 4 storage zones",
-    delta: "+5.7%",
-    up: true,
-    positive: true,
-    icon: Boxes,
-    tint: "var(--color-primary)",
-    stroke: "var(--color-primary)",
-    spark: [32, 38, 36, 42, 45, 44, 48],
-  },
   {
     label: "Warehouse Occupancy",
     value: "72",
@@ -204,16 +192,18 @@ function ExecutiveKpiCard({ kpi }: { kpi: Kpi }) {
           >
             <Icon className="size-4.5" />
           </span>
-          <div
-            className={`inline-flex items-center gap-0.5 text-[11px] font-bold tabular-nums px-2 py-0.5 rounded-full ${
-              kpi.positive
-                ? "text-success bg-success/10"
-                : "text-warning-foreground bg-warning/15"
-            }`}
-          >
-            {kpi.up ? <ArrowUpRight className="size-3" /> : <ArrowDownRight className="size-3" />}
-            {kpi.delta}
-          </div>
+          {kpi.delta && (
+            <div
+              className={`inline-flex items-center gap-0.5 text-[11px] font-bold tabular-nums px-2 py-0.5 rounded-full ${
+                kpi.positive
+                  ? "text-success bg-success/10"
+                  : "text-warning-foreground bg-warning/15"
+              }`}
+            >
+              {kpi.up ? <ArrowUpRight className="size-3" /> : <ArrowDownRight className="size-3" />}
+              {kpi.delta}
+            </div>
+          )}
         </div>
 
         <div className="mt-5">
@@ -231,9 +221,11 @@ function ExecutiveKpiCard({ kpi }: { kpi: Kpi }) {
           <div className="mt-1.5 text-[12px] text-muted-foreground">{kpi.caption}</div>
         </div>
 
-        <div className="mt-3 -mx-1">
-          <Sparkline data={kpi.spark} color={kpi.stroke} />
-        </div>
+        {kpi.spark && (
+          <div className="mt-3 -mx-1">
+            <Sparkline data={kpi.spark} color={kpi.stroke} />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -763,6 +755,30 @@ function PriorityCard({ p }: { p: Priority }) {
    ============================================================ */
 
 function Dashboard() {
+  const { data: dashboardSummary, isError: isDashboardSummaryError } = useDashboardSummary();
+  const totalInventoryKpi: Kpi = dashboardSummary
+    ? {
+        label: "Total Inventory",
+        value: dashboardSummary.total_inventory_units.toLocaleString(),
+        unit: "units",
+        caption: `${dashboardSummary.available_inventory_units.toLocaleString()} available · ${dashboardSummary.reserved_inventory_units.toLocaleString()} reserved`,
+        delta: "+5.7%",
+        up: true,
+        positive: true,
+        icon: Boxes,
+        tint: "var(--color-primary)",
+        stroke: "var(--color-primary)",
+        spark: [32, 38, 36, 42, 45, 44, 48],
+      }
+    : {
+        label: "Total Inventory",
+        value: "Unavailable",
+        caption: isDashboardSummaryError ? "No backend data" : "Unavailable",
+        icon: Boxes,
+        tint: "var(--color-primary)",
+        stroke: "var(--color-primary)",
+      };
+
   return (
     <AppLayout>
       <div className="space-y-7">
@@ -808,7 +824,7 @@ function Dashboard() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {kpis.map((k) => (
+            {[totalInventoryKpi, ...kpis].map((k) => (
               <ExecutiveKpiCard key={k.label} kpi={k} />
             ))}
           </div>

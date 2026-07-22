@@ -47,7 +47,7 @@ export function AppLayout({ children }: { children?: ReactNode }) {
     );
   }
 
-  const initials = user.full_name
+  const initials = user?.full_name
     .split(" ")
     .map((part) => part[0])
     .join("")
@@ -128,9 +128,9 @@ export function AppLayout({ children }: { children?: ReactNode }) {
               <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-destructive" />
             </button>
             <div className="hidden lg:block text-right">
-              <div className="text-sm font-semibold text-foreground">{user.full_name}</div>
+              <div className="text-sm font-semibold text-foreground">{user?.full_name}</div>
               <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                {user.role}
+                {user?.role}
               </div>
             </div>
             <div className="size-9 rounded-full bg-gradient-to-br from-primary to-teal text-primary-foreground grid place-items-center text-sm font-semibold">
