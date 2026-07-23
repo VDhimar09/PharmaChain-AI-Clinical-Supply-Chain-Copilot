@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent } from "@/components/ui/card";
-import { Snowflake, Thermometer, Warehouse as WarehouseIcon, PackageCheck, ArrowRight } from "lucide-react";
+import { Snowflake, Thermometer, Warehouse as WarehouseIcon, TrendingUp, ArrowRight } from "lucide-react";
 import { AiInsight } from "@/components/AiInsight";
 import { useWarehouseZones, useWarehouseCapacitySummary } from "@/lib/api/hooks";
 
@@ -56,8 +56,6 @@ function WarehousePage() {
   const zonesUnavailable = zonesLoading || zonesError;
   const capacityCaptionFallback = capLoading ? "Loading capacity" : "No backend data";
 
-  const nearCapacity = zones.filter((z) => z.capacity_units > 0 && z.occupied_units / z.capacity_units >= 0.8);
-
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -78,18 +76,18 @@ function WarehousePage() {
             tone={capacity && capacity.occupancy_percentage >= 80 ? "warning" : "success"}
           />
           <Kpi
-            icon={PackageCheck}
-            label="Available capacity"
-            value={capacity ? capacity.available_capacity.toLocaleString() : "Unavailable"}
-            caption={capacity ? "pallets free" : capacityCaptionFallback}
+            icon={TrendingUp}
+            label="Forecast (30d)"
+            value="Unavailable"
+            caption="No forecasting data"
             tone="info"
           />
           <Kpi
             icon={Snowflake}
-            label="Zones near capacity"
-            value={zonesUnavailable ? "Unavailable" : String(nearCapacity.length)}
-            caption={zonesUnavailable ? (zonesLoading ? "Loading zones" : "No backend data") : "≥ 80% occupied"}
-            tone={!zonesUnavailable && nearCapacity.length ? "warning" : "success"}
+            label="Zones at risk"
+            value="Unavailable"
+            caption="No forecasting data"
+            tone="success"
           />
         </div>
 
@@ -116,12 +114,10 @@ function WarehousePage() {
           {!zonesUnavailable &&
             zones.map((z) => {
               const occ = z.capacity_units > 0 ? Math.round((z.occupied_units / z.capacity_units) * 100) : 0;
-              const risk = riskOf(occ);
-              const s = riskStyles[risk];
               const isCold = z.zone_type.toLowerCase().includes("cold") || (z.temperature_max !== null && z.temperature_max <= 8);
               const Icon = isCold ? Snowflake : Thermometer;
               return (
-                <Card key={z.id} className={`border ${s.ring} transition-shadow hover:shadow-[0_12px_32px_-18px_color-mix(in_oklab,var(--color-foreground)_22%,transparent)]`}>
+                <Card key={z.id} className={`border border-border/70 transition-shadow hover:shadow-[0_12px_32px_-18px_color-mix(in_oklab,var(--color-foreground)_22%,transparent)]`}>
                   <CardContent className="p-5 space-y-5">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
@@ -135,8 +131,8 @@ function WarehousePage() {
                           </div>
                         </div>
                       </div>
-                      <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${s.chip}`}>
-                        {risk}
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border bg-muted/60 text-muted-foreground border-border">
+                        Unavailable
                       </span>
                     </div>
 
@@ -148,6 +144,7 @@ function WarehousePage() {
 
                     <div className="space-y-3">
                       <Bar label="Current occupancy" pct={occ} tone="primary" />
+                      <Bar label="Forecast (30d)" pct={0} tone="teal" unavailable />
                     </div>
 
                     <button className="w-full inline-flex items-center justify-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-md border border-border bg-card hover:bg-muted transition-colors">
@@ -173,16 +170,29 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Bar({ label, pct, tone }: { label: string; pct: number; tone: "primary" | "teal" | "warning" | "destructive" }) {
+function Bar({
+  label,
+  pct,
+  tone,
+  unavailable,
+}: {
+  label: string;
+  pct: number;
+  tone: "primary" | "teal" | "warning" | "destructive";
+  unavailable?: boolean;
+}) {
   const colors = { primary: "bg-primary", teal: "bg-teal", warning: "bg-warning", destructive: "bg-destructive" };
   return (
     <div>
       <div className="flex items-center justify-between text-xs mb-1.5">
         <span className="text-muted-foreground">{label}</span>
-        <span className="font-semibold tabular-nums">{pct}%</span>
+        <span className="font-semibold tabular-nums">{unavailable ? "Unavailable" : `${pct}%`}</span>
       </div>
       <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-        <div className={`h-full rounded-full ${colors[tone]} transition-all duration-700`} style={{ width: `${pct}%` }} />
+        <div
+          className={`h-full rounded-full transition-all duration-700 ${unavailable ? "bg-muted-foreground/20" : colors[tone]}`}
+          style={{ width: unavailable ? "0%" : `${pct}%` }}
+        />
       </div>
     </div>
   );
