@@ -40,7 +40,7 @@ import {
   ReferenceLine,
 } from "recharts";
 import { inventoryTrend, zones } from "@/lib/mock-data";
-import { useDashboardSummary } from "@/lib/api/hooks";
+import { useAiInsights, useDashboardSummary } from "@/lib/api/hooks";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -635,7 +635,7 @@ type Priority = {
   title: string;
   rationale: string;
   impact: string;
-  confidence: number;
+  confidence: number | null;
   cta: string;
 };
 
@@ -720,7 +720,7 @@ function PriorityCard({ p }: { p: Priority }) {
             {p.priority} · {p.category}
           </span>
           <span className="text-[11px] font-semibold text-muted-foreground tabular-nums">
-            {p.confidence}% conf.
+            {p.confidence === null ? "Unavailable" : `${p.confidence}% conf.`}
           </span>
         </div>
 
@@ -756,6 +756,7 @@ function PriorityCard({ p }: { p: Priority }) {
 
 function Dashboard() {
   const { data: dashboardSummary, isError: isDashboardSummaryError } = useDashboardSummary();
+  const { data: aiInsights } = useAiInsights();
   const totalInventoryKpi: Kpi = dashboardSummary
     ? {
         label: "Total Inventory",
@@ -778,6 +779,78 @@ function Dashboard() {
         tint: "var(--color-primary)",
         stroke: "var(--color-primary)",
       };
+
+  const executiveKpis: Kpi[] = dashboardSummary
+    ? [
+        totalInventoryKpi,
+        {
+          label: "Warehouse Occupancy",
+          value: dashboardSummary.warehouse_occupancy.toLocaleString(),
+          unit: "%",
+          caption: `${dashboardSummary.warehouse_available_capacity.toLocaleString()} capacity available`,
+          icon: Warehouse,
+          tint: "var(--color-teal)",
+          stroke: "var(--color-teal)",
+          spark: [60, 62, 65, 64, 68, 70, 72],
+        },
+        {
+          label: "Incoming Shipments",
+          value: dashboardSummary.incoming_shipments.toLocaleString(),
+          unit: "inbound",
+          caption: `${dashboardSummary.delayed_shipments.toLocaleString()} delayed`,
+          icon: Truck,
+          tint: "var(--color-info)",
+          stroke: "var(--color-info)",
+          spark: [10, 14, 12, 15, 13, 16, 18],
+        },
+        ...kpis.slice(2),
+      ]
+    : [totalInventoryKpi, ...kpis];
+
+  const livePriorities: Priority[] = aiInsights
+    ? [
+        ...aiInsights.alerts.map((alert, index) => ({
+          id: `alert-${index}`,
+          kind: "alert" as const,
+          priority: (alert.severity === "HIGH" ? "P1" : alert.severity === "MEDIUM" ? "P2" : "P3") as Priority["priority"],
+          tone: (alert.severity === "HIGH" ? "critical" : alert.severity === "MEDIUM" ? "warning" : "healthy") as Priority["tone"],
+          icon: alert.severity === "HIGH" ? ShieldAlert : AlertTriangle,
+          category: "Alert",
+          title: alert.title,
+          rationale: alert.message,
+          impact: "Unavailable",
+          confidence: null,
+          cta: "Review",
+        })),
+        ...aiInsights.recommendations.map((recommendation, index) => ({
+          id: `recommendation-${index}`,
+          kind: "reco" as const,
+          priority: (recommendation.priority === "HIGH" ? "P1" : recommendation.priority === "MEDIUM" ? "P2" : "P3") as Priority["priority"],
+          tone: (recommendation.priority === "HIGH" ? "critical" : recommendation.priority === "MEDIUM" ? "warning" : "healthy") as Priority["tone"],
+          icon: Sparkles,
+          category: "Recommendation",
+          title: recommendation.title,
+          rationale: recommendation.message,
+          impact: "Unavailable",
+          confidence: null,
+          cta: "Review",
+        })),
+      ].slice(0, 3)
+    : priorities;
+
+  const operationalKpis = dashboardSummary
+    ? opKpis.map((kpi) =>
+        kpi.label === "Warehouse Utilization"
+          ? {
+              ...kpi,
+              value: dashboardSummary.warehouse_occupancy,
+              caption: `${dashboardSummary.warehouse_available_capacity.toLocaleString()} capacity available`,
+            }
+          : kpi,
+      )
+    : opKpis;
+
+  const liveZones = aiInsights?.warehouse.occupancy;
 
   return (
     <AppLayout>
@@ -824,7 +897,7 @@ function Dashboard() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[totalInventoryKpi, ...kpis].map((k) => (
+            {executiveKpis.map((k) => (
               <ExecutiveKpiCard key={k.label} kpi={k} />
             ))}
           </div>
@@ -865,7 +938,7 @@ function Dashboard() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              {priorities.map((p) => (
+              {livePriorities.map((p) => (
                 <PriorityCard key={p.id} p={p} />
               ))}
             </div>
@@ -886,7 +959,7 @@ function Dashboard() {
             }
           />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {opKpis.map((k) => (
+            {operationalKpis.map((k) => (
               <RadialKpi key={k.label} kpi={k} />
             ))}
           </div>
@@ -1055,8 +1128,10 @@ function Dashboard() {
 
             <div className="px-5 pb-5 pt-1">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {zones.map((z) => {
-                  const pct = Math.round((z.occupied / z.capacity) * 100);
+                {(liveZones ?? zones).map((z) => {
+                  const pct = "occupancy_percentage" in z
+                    ? z.occupancy_percentage
+                    : Math.round((z.occupied / z.capacity) * 100);
                   const warn = pct >= 80;
                   const Icon = z.name.includes("Frozen")
                     ? Snowflake
@@ -1072,7 +1147,13 @@ function Dashboard() {
                           </div>
                           <div>
                             <div className="text-[13px] font-semibold leading-tight">{z.name}</div>
-                            <div className="text-[10.5px] text-muted-foreground tabular-nums">{z.temperature}</div>
+                            <div className="text-[10.5px] text-muted-foreground tabular-nums">
+                              {"temperature" in z
+                                ? z.temperature
+                                : z.temperature_min === null || z.temperature_max === null
+                                  ? "Unavailable"
+                                  : `${z.temperature_min}°C to ${z.temperature_max}°C`}
+                            </div>
                           </div>
                         </div>
                         <div className={`text-[18px] font-bold font-[family-name:var(--font-heading)] tabular-nums ${warn ? "text-warning-foreground" : "text-foreground"}`}>
@@ -1083,7 +1164,7 @@ function Dashboard() {
                         <div className={`h-full rounded-full transition-all duration-700 ${warn ? "bg-warning" : "bg-primary"}`} style={{ width: `${pct}%` }} />
                       </div>
                       <div className="mt-2 text-[10.5px] text-muted-foreground tabular-nums">
-                        {z.occupied.toLocaleString()} / {z.capacity.toLocaleString()} slots
+                        {("occupied" in z ? z.occupied : z.occupied_units).toLocaleString()} / {("capacity" in z ? z.capacity : z.capacity_units).toLocaleString()} slots
                       </div>
                     </div>
                   );
