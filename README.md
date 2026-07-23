@@ -31,24 +31,20 @@
 <tr>
 <td valign="top" width="50%">
 
-- [⭐ Key Highlights](#-key-highlights)
-- [🗂️ Repository Overview](#-repository-overview)
 - [📖 Overview](#-overview)
 - [✨ Features](#-features)
 - [🏗️ Architecture](#-architecture)
-- [🧠 AI Architecture](#-ai-architecture)
 - [🛠️ Technology Stack](#-technology-stack)
 - [📂 Folder Structure](#-folder-structure)
+- [🔌 API Reference](#-api-reference)
 
 </td>
 <td valign="top" width="50%">
 
-- [🔌 Backend APIs](#-backend-apis)
-- [🔐 Authentication](#-authentication)
-- [🤖 AI Features](#-ai-features)
+- [🔐 Authentication & RBAC](#-authentication--rbac)
 - [🚀 Getting Started](#-getting-started)
-- [☁️ Deployment](#-deployment)
 - [🧪 Testing](#-testing)
+- [☁️ Deployment](#-deployment)
 - [🗺️ Roadmap](#-roadmap)
 - [🖼️ Screenshots](#-screenshots-gallery) · [👩‍💻 About](#-about) · [📄 License](#-license)
 
@@ -58,149 +54,34 @@
 
 ---
 
-## ⭐ Key Highlights
-
-<table>
-<tr>
-<td width="33%" valign="top">
-
-**⚛️ React + TypeScript**
-Type-safe frontend built on TanStack Router and TanStack Query.
-
-</td>
-<td width="33%" valign="top">
-
-**⚡ FastAPI**
-Clean `api → services → repositories` layering over SQLAlchemy 2.0.
-
-</td>
-<td width="33%" valign="top">
-
-**🐘 PostgreSQL**
-Single source of truth — every KPI reads from the live database.
-
-</td>
-</tr>
-<tr>
-<td width="33%" valign="top">
-
-**🔐 JWT + RBAC**
-Access/refresh tokens with five permission-scoped roles on every route.
-
-</td>
-<td width="33%" valign="top">
-
-**🤖 AI Procurement**
-Deterministic reasoning engine returns a decision with confidence and evidence.
-
-</td>
-<td width="33%" valign="top">
-
-**📈 AI Insights**
-One endpoint powers a full operations centre of KPIs, alerts and trends.
-
-</td>
-</tr>
-<tr>
-<td colspan="3" align="center">
-
-**💬 Executive Copilot** — Conversational interface over the same reasoning engine, fully auditable per response.
-
-</td>
-</tr>
-</table>
-
----
-
-## 🗂️ Repository Overview
-
-| Area | Path | What's there |
-|---|---|---|
-| **Frontend** | [`frontend/`](frontend) | React 19 + TypeScript SPA — routes, components, API hooks |
-| **Backend** | [`backend/`](backend) | FastAPI service — API routers, services, repositories, AI engine |
-| **Assets** | [`assets/screenshots/`](assets/screenshots) | Product screenshots used throughout this README |
-| **Documentation** | [`backend/docs/architecture.md`](backend/docs/architecture.md) | AI reasoning pipeline design notes |
-
----
-
 ## 📖 Overview
 
-**The business problem.** Pharmaceutical supply chains carry risk that generic dashboards don't surface well: cold-chain inventory has strict temperature bands and short expiry windows, warehouse cold-chain zones have finite shared capacity, shipment delays ripple silently into stockouts, and procurement calls are often made without a consolidated, auditable view of stock, incoming shipments, warehouse space and supplier reliability.
+Pharmaceutical supply chains carry risk that generic dashboards miss: cold-chain inventory with strict expiry windows, warehouse zones with finite shared capacity, shipment delays that ripple silently into stockouts, and procurement calls made without a consolidated, auditable view of stock, incoming shipments and supplier reliability. **PharmaChain** consolidates inventory, warehouse, shipments and procurement behind one authenticated, role-aware application, and adds an AI layer that reasons over **live** operational data — every KPI, table and chart reads from PostgreSQL through the FastAPI service layer, nothing is hardcoded or simulated.
 
-**The solution.** PharmaChain consolidates inventory, warehouse, shipments and procurement behind one authenticated, role-aware application, and adds an AI layer that reasons over **live** operational data instead of guessing. Every KPI, table and chart reads from PostgreSQL through the FastAPI service layer — nothing is hardcoded or simulated.
+It's built for operations, warehouse and procurement managers who need one place to see inventory health, warehouse occupancy, shipment risk and an explainable procurement recommendation — and for engineers evaluating a realistic, full-stack, RBAC-secured FastAPI + React reference implementation.
 
-**Who it's for.** Operations, warehouse and procurement managers who need one place to see inventory health, warehouse occupancy, shipment risk and get an explainable procurement recommendation — plus engineers evaluating a realistic, full-stack, RBAC-secured FastAPI + React reference implementation.
-
-**Why AI helps here.** A procurement or capacity decision made without evidence is hard to trust and hard to audit later. PharmaChain's reasoning engine makes every AI answer traceable: detected intent → execution plan → tools run → evidence collected → composed recommendation with a confidence score, all inspectable in the UI rather than hidden behind a black box.
+A procurement or capacity decision made without evidence is hard to trust and hard to audit later. PharmaChain's reasoning engine makes every AI answer traceable: detected intent → execution plan → tools run → evidence collected → composed recommendation with a confidence score, all inspectable in the UI rather than hidden behind a black box.
 
 ---
 
 ## ✨ Features
 
-<table>
-<tr>
-<td width="50%" valign="top">
-
-### 📊 Dashboard
-Executive KPIs (inventory units, warehouse occupancy, incoming/delayed shipments) from `GET /api/dashboard/summary`, plus AI-generated priorities from `GET /api/ai/insights`.
-
-</td>
-<td width="50%" valign="top">
-
-### 📦 Inventory
-Live inventory table and status KPIs (Healthy / Low / Critical / Expiring) from `GET /api/inventory`, with status computed server-side from quantity and expiry date.
-
-</td>
-</tr>
-<tr>
-<td width="50%" valign="top">
-
-### 🏭 Warehouse
-Zone-level capacity and occupancy from `GET /api/warehouse-zones` and `/capacity`. Forecasting isn't implemented server-side, so forecast widgets honestly show **Unavailable** instead of fabricated numbers.
-
-</td>
-<td width="50%" valign="top">
-
-### 🚚 Shipments
-Shipment table and status KPIs (In Transit / Delivered / Delayed / Processing) from `GET /api/shipments`.
-
-</td>
-</tr>
-<tr>
-<td width="50%" valign="top">
-
-### 🤖 AI Procurement
-Compose a request (product, supplier, quantity) and run it through the reasoning engine via `POST /api/ai/procurement/analyze` — returns a decision, confidence score, tool execution trace, reasoning steps and evidence bundle.
-
-</td>
-<td width="50%" valign="top">
-
-### 📈 AI Insights
-A single operations centre — executive KPIs, alerts, inventory/warehouse/shipment/procurement breakdowns, recommendations and trend charts — all from one call to `GET /api/ai/insights`.
-
-</td>
-</tr>
-<tr>
-<td width="50%" valign="top">
-
-### 💬 Executive Copilot
-A conversational interface over the same reasoning engine (`POST /api/ai/copilot/chat`) — ask an operational question, get a structured, explainable answer with its tool execution trace.
-
-</td>
-<td width="50%" valign="top">
-
-### 🔐 Auth & RBAC
-JWT access/refresh tokens and five permission-scoped roles gate every route in the API — see [Authentication](#-authentication) below.
-
-</td>
-</tr>
-</table>
+- **📊 Dashboard** — Executive KPIs (inventory units, warehouse occupancy, incoming/delayed shipments) from `GET /api/dashboard/summary`, plus AI-generated priorities from `GET /api/ai/insights`.
+- **📦 Inventory** — Live inventory table and status KPIs (Healthy / Low / Critical / Expiring) from `GET /api/inventory`, with status computed server-side from quantity and expiry date.
+- **🏭 Warehouse** — Zone-level capacity and occupancy from `GET /api/warehouse-zones` and `/capacity`. Forecasting isn't implemented server-side, so forecast widgets honestly show **Unavailable** instead of fabricated numbers.
+- **🚚 Shipments** — Shipment table and status KPIs (In Transit / Delivered / Delayed / Processing) from `GET /api/shipments`.
+- **🤖 AI Procurement** — Compose a request (product, supplier, quantity) and run it through the reasoning engine via `POST /api/ai/procurement/analyze` — returns a decision, confidence score, tool execution trace, reasoning steps and evidence bundle.
+- **📈 AI Insights** — A single operations centre — executive KPIs, alerts, inventory/warehouse/shipment/procurement breakdowns, recommendations and trend charts — all from one call to `GET /api/ai/insights`.
+- **💬 Executive Copilot** — A conversational interface over the same reasoning engine (`POST /api/ai/copilot/chat`) — ask an operational question, get a structured, explainable answer with its tool execution trace.
+- **🔐 Auth & RBAC** — JWT access/refresh tokens and five permission-scoped roles gate every route in the API — see [Authentication & RBAC](#-authentication--rbac).
 
 > All seven modules are pictured together in the [Screenshots Gallery](#-screenshots-gallery).
 
 ---
 
 ## 🏗️ Architecture
+
+### System Architecture
 
 <div align="center">
 
@@ -227,9 +108,7 @@ graph TD
 
 Real backend layering: `api/` (FastAPI routers) → `services/` (business logic) → `repositories/` (data access) → SQLAlchemy models → PostgreSQL. A background APScheduler job (`app/jobs/shipment_monitor.py`) writes to the same repository layer on a schedule.
 
----
-
-## 🧠 AI Architecture
+### AI Reasoning Pipeline
 
 <div align="center">
 
@@ -262,6 +141,16 @@ graph TD
 </div>
 
 This mirrors the pipeline documented in [`backend/docs/architecture.md`](backend/docs/architecture.md): `CopilotTool → ReasoningPlanner → PlanningStrategy → RuleBasedPlanner → ExecutionPlan → ReasoningEngine → ToolRegistry → Tools → ResponseComposer`. The planner is built with the Strategy pattern specifically so an `LLMPlanner` can be substituted later without touching the execution or response layers — but no such planner exists in the codebase today.
+
+Three UI surfaces drive this pipeline directly:
+
+| Page | Endpoint | Service |
+|---|---|---|
+| `/assistant` — AI Procurement | `POST /api/ai/procurement/analyze` | `ProcurementAnalysisService` |
+| `/insights` — AI Insights | `GET /api/ai/insights` | `AIInsightsService` |
+| `/copilot` — Executive Copilot | `POST /api/ai/copilot/chat` | `CopilotOrchestratorService` |
+
+None of the three call an external LLM — all three run the same in-process `ReasoningPlanner → RuleBasedPlanner → ReasoningEngine → ToolRegistry` pipeline and return their intent, tool execution trace, evidence and reasoning directly to the UI, so every answer is auditable rather than just readable.
 
 ---
 
@@ -348,7 +237,7 @@ PharmaChain-AI-Clinical-Supply-Chain-Copilot/
 
 ---
 
-## 🔌 Backend APIs
+## 🔌 API Reference
 
 All routes require a valid JWT unless marked **Public**; most also require the listed permission via `require_permission(...)`.
 
@@ -432,7 +321,7 @@ All routes require a valid JWT unless marked **Public**; most also require the l
 
 ---
 
-## 🔐 Authentication
+## 🔐 Authentication & RBAC
 
 | Aspect | Detail |
 |---|---|
@@ -455,19 +344,6 @@ All routes require a valid JWT unless marked **Public**; most also require the l
 Roles and permissions are seeded automatically on startup by `BootstrapService`, along with a default administrator controlled by the `BOOTSTRAP_ADMIN_*` environment variables.
 
 </details>
-
----
-
-## 🤖 AI Features
-
-**AI Procurement.** The `/assistant` page collects a product, supplier and quantity, then calls `POST /api/ai/procurement/analyze`. `ProcurementAnalysisService` runs the same `ReasoningPlanner → RuleBasedPlanner → ReasoningEngine → ToolRegistry` pipeline described above and returns a decision, confidence score, per-tool execution timeline, step-by-step reasoning, an evidence bundle (inventory/warehouse/shipment/supplier data actually collected) and a written recommendation.
-
-**AI Insights.** The `/insights` page is powered entirely by one call to `GET /api/ai/insights`. `AIInsightsService` assembles executive KPIs, prioritized alerts, inventory/warehouse/shipment/procurement breakdowns, recommendations and trend series — all computed from current database state, not cached or simulated.
-
-**Executive Copilot.** The `/copilot` page is a chat UI over `POST /api/ai/copilot/chat`. `CopilotOrchestratorService` runs the full reasoning pipeline against the user's free-text question, returning `intent`, `tools_used`, `reasoning`, `tool_execution`, an `evidence` bundle and a natural-language `response` — every field rendered directly in the UI so the answer is auditable, not just readable.
-
-> [!IMPORTANT]
-> None of the three features above call an external LLM. They are all backed by the same deterministic, in-process reasoning engine (`app/ai/*`). The `PlanningStrategy` interface is built so an `LLMPlanner` could be dropped in later without changing the execution or response layers — see [`backend/docs/architecture.md`](backend/docs/architecture.md).
 
 ---
 
@@ -552,14 +428,6 @@ Starts PostgreSQL 16 and the FastAPI backend (`backend/Dockerfile`). Run the fro
 
 ---
 
-## ☁️ Deployment
-
-- **Backend** — `backend/Dockerfile` is written for containerized deployment and is explicitly configured for **Render** (reads `$PORT`, installs from `requirements.txt`).
-- **Frontend** — built with Vite + TanStack Start on the Nitro server target; `npm run build` produces a deployable server bundle. This repository's default Nitro preset emits a Cloudflare Workers–compatible output.
-- No **Vercel** configuration and no CI/CD pipeline (e.g. GitHub Actions) currently exist in this repository — they are not claimed here.
-
----
-
 ## 🧪 Testing
 
 **Backend** — pytest suite in `backend/tests/` (17 modules), covering authentication, RBAC, audit logging, the AI planner/reasoning engine/tool registry/response composer, procurement AI/analysis services, and background job integration.
@@ -574,7 +442,26 @@ pytest
 
 ---
 
+## ☁️ Deployment
+
+- **Backend** — `backend/Dockerfile` is written for containerized deployment and is explicitly configured for **Render** (reads `$PORT`, installs from `requirements.txt`).
+- **Frontend** — built with Vite + TanStack Start on the Nitro server target; `npm run build` produces a deployable server bundle. This repository's default Nitro preset emits a Cloudflare Workers–compatible output.
+- No **Vercel** configuration and no CI/CD pipeline (e.g. GitHub Actions) currently exist in this repository — they are not claimed here.
+
+---
+
 ## 🗺️ Roadmap
+
+**Completed**
+
+- [x] Full CRUD-backed Inventory, Warehouse Zones, Shipments, Products, Suppliers and Procurement Requests modules
+- [x] JWT auth with refresh tokens and five-role, permission-based RBAC
+- [x] Deterministic AI reasoning engine — Intent Engine → Planner → Tool Registry → Response Composer
+- [x] AI Procurement analysis, AI Insights operations centre and Executive Copilot chat
+- [x] Audit logging and background shipment-monitor job (APScheduler)
+- [x] Core frontend pages (Dashboard, Inventory, Warehouse, Shipments) migrated from mock data onto live backend endpoints
+
+**Future**
 
 - [ ] LLM-backed planning strategy (`OPENAI_API_KEY` / `AZURE_OPENAI_*` are already reserved for this)
 - [ ] Retrieval-Augmented Generation (RAG) over operational documents
