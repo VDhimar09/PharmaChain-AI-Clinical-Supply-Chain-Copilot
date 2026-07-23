@@ -5,9 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useMemo, useState } from "react";
 import { Search, Truck, CheckCircle2, AlertTriangle, Clock } from "lucide-react";
-import { shipments } from "@/lib/mock-data";
 import { StatusBadge, statusTone } from "@/components/StatusBadge";
 import { AiInsight } from "@/components/AiInsight";
+import { useShipments } from "@/lib/api/hooks";
 
 export const Route = createFileRoute("/shipments")({
   head: () => ({
@@ -24,6 +24,7 @@ const STATUSES = ["All", "In Transit", "Delivered", "Delayed", "Processing"] as 
 function ShipmentsPage() {
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<(typeof STATUSES)[number]>("All");
+  const { data: shipments = [], isLoading, isError } = useShipments();
 
   const filtered = useMemo(() => {
     const term = q.toLowerCase();
@@ -31,10 +32,10 @@ function ShipmentsPage() {
       (s) =>
         (status === "All" || s.status === status) &&
         (s.id.toLowerCase().includes(term) ||
-          s.supplier.toLowerCase().includes(term) ||
-          s.product.toLowerCase().includes(term)),
+          s.supplier_name.toLowerCase().includes(term) ||
+          s.product_name.toLowerCase().includes(term)),
     );
-  }, [q, status]);
+  }, [shipments, q, status]);
 
   const counts = useMemo(
     () => ({
@@ -43,17 +44,18 @@ function ShipmentsPage() {
       Delayed: shipments.filter((s) => s.status === "Delayed").length,
       Processing: shipments.filter((s) => s.status === "Processing").length,
     }),
-    [],
+    [shipments],
   );
+  const shipmentsUnavailable = isLoading || isError;
 
   return (
     <AppLayout>
       <div className="space-y-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Stat icon={Truck} label="In Transit" value={counts["In Transit"]} tone="info" />
-          <Stat icon={CheckCircle2} label="Delivered" value={counts.Delivered} tone="success" />
-          <Stat icon={AlertTriangle} label="Delayed" value={counts.Delayed} tone="destructive" />
-          <Stat icon={Clock} label="Processing" value={counts.Processing} tone="warning" />
+          <Stat icon={Truck} label="In Transit" value={shipmentsUnavailable ? "Unavailable" : String(counts["In Transit"])} tone="info" />
+          <Stat icon={CheckCircle2} label="Delivered" value={shipmentsUnavailable ? "Unavailable" : String(counts.Delivered)} tone="success" />
+          <Stat icon={AlertTriangle} label="Delayed" value={shipmentsUnavailable ? "Unavailable" : String(counts.Delayed)} tone="destructive" />
+          <Stat icon={Clock} label="Processing" value={shipmentsUnavailable ? "Unavailable" : String(counts.Processing)} tone="warning" />
         </div>
 
         <AiInsight
@@ -122,10 +124,10 @@ function ShipmentsPage() {
                         )}
                         {s.id}
                       </TableCell>
-                      <TableCell className="font-medium">{s.supplier}</TableCell>
-                      <TableCell className="text-muted-foreground">{s.product}</TableCell>
+                      <TableCell className="font-medium">{s.supplier_name}</TableCell>
+                      <TableCell className="text-muted-foreground">{s.product_name}</TableCell>
                       <TableCell className="text-right tabular-nums">{s.quantity.toLocaleString()}</TableCell>
-                      <TableCell className="tabular-nums">{s.arrival}</TableCell>
+                      <TableCell className="tabular-nums">{s.expected_arrival}</TableCell>
                       <TableCell><StatusBadge label={s.status} tone={statusTone(s.status)} /></TableCell>
                     </TableRow>
                   );
@@ -133,7 +135,7 @@ function ShipmentsPage() {
                 {filtered.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
-                      No shipments match your filters.
+                      {isLoading ? "Loading shipments…" : isError ? "Unable to load shipments." : "No shipments match your filters."}
                     </TableCell>
                   </TableRow>
                 )}
@@ -154,7 +156,7 @@ function Stat({
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
-  value: number;
+  value: string;
   tone: "info" | "success" | "destructive" | "warning";
 }) {
   const toneMap = {
