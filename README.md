@@ -1,90 +1,117 @@
+
 # 💊 PharmaChain – AI Clinical Supply Chain Copilot
 
-> An AI-powered Clinical Supply Chain Copilot that helps pharmaceutical organisations monitor inventory, optimise warehouse operations, analyse procurement requests, and support operational decision-making using intelligent workflows.
+<p align="center">
+  <strong>AI-powered pharmaceutical supply chain platform built with React, FastAPI, PostgreSQL and OpenAI.</strong>
+</p>
+
+<p align="center">
+
+![Python](https://img.shields.io/badge/Python-3.13-blue)
+![FastAPI](https://img.shields.io/badge/FastAPI-Latest-009688)
+![React](https://img.shields.io/badge/React-19-61DAFB)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-336791)
+![OpenAI](https://img.shields.io/badge/OpenAI-AI-purple)
+![License](https://img.shields.io/badge/License-MIT-yellow)
+
+</p>
 
 ---
 
-## Overview
+## 📖 Overview
 
-PharmaChain is a full-stack AI application designed to improve visibility across pharmaceutical supply chain operations.
+PharmaChain is a full-stack AI-powered Clinical Supply Chain Copilot designed to help pharmaceutical organisations monitor inventory, warehouse capacity, shipments and procurement decisions from a single intelligent platform.
 
-The platform combines operational dashboards with AI-powered decision support to help warehouse managers, procurement teams and supply chain planners monitor inventory, warehouse utilisation, shipments and procurement activities from a single interface.
-
-Unlike a traditional dashboard, PharmaChain includes AI-driven capabilities that explain decisions, present supporting evidence and recommend actions based on live operational data.
+The application combines operational dashboards with AI-assisted workflows, giving supply chain teams actionable insights supported by live backend data.
 
 ---
 
-## Business Problem
+# ✨ Features
 
-Clinical supply chains manage products with strict regulatory and operational requirements.
-
-Teams often work across multiple systems to answer questions such as:
-
-- Which products are running low?
-- Which warehouse zones are nearing capacity?
-- Which shipments are delayed?
-- Should this procurement request be approved?
-- What operational risks require immediate attention?
-
-PharmaChain brings these answers together into a single AI-assisted platform.
+- 📊 Live Operational Dashboard
+- 📦 Inventory Management
+- 🏭 Warehouse Capacity Monitoring
+- 🚚 Shipment Tracking
+- 🤖 AI Procurement Analysis
+- 📈 AI Insights Dashboard
+- 💬 Executive Copilot
+- 🔐 JWT Authentication
+- 🛡️ Role-Based Access Control (RBAC)
 
 ---
 
-# Key Features
+# 📸 Screenshots
 
-## 📊 Operational Dashboard
+> Place these images inside `docs/images/`
 
-- Live inventory overview
-- Warehouse occupancy
-- Shipment monitoring
-- Today's operational priorities
-- Cold-chain warehouse visibility
+## Dashboard
 
----
+![Dashboard](docs/images/dashboard.png)
 
-## 📦 Inventory Management
+## Inventory
 
-- Live inventory records
-- Low stock monitoring
-- Healthy SKU tracking
-- Expiring product visibility
-- Product search and filtering
+![Inventory](docs/images/inventory.png)
 
----
+## Warehouse Capacity
 
-## 🏭 Warehouse Management
+![Warehouse](docs/images/warehouse-capacity.png)
 
-- Warehouse capacity monitoring
-- Zone utilisation
-- Available capacity
-- Occupancy analysis
-- Cold-chain support
+## Shipments
 
----
+![Shipments](docs/images/shipments.png)
 
-## 🚚 Shipment Management
+## AI Procurement
 
-- Live shipment tracking
-- In Transit monitoring
-- Delivered shipments
-- Delayed shipments
-- Processing shipments
-- Search and filtering
+![AI Procurement](docs/images/ai-procurement.png)
+
+## AI Insights
+
+![AI Insights](docs/images/ai-insights.png)
+
+## Executive Copilot
+
+![Executive Copilot](docs/images/executive-copilot.png)
 
 ---
 
-## 🤖 AI Procurement Copilot
+# 🏗️ Architecture
 
-Analyse procurement requests using deterministic AI workflows.
+```text
+React + TypeScript
+        │
+TanStack Router
+        │
+React Query
+        │
+FastAPI
+        │
+Business Services
+        │
+Repositories
+        │
+SQLAlchemy
+        │
+PostgreSQL
+        │
+OpenAI / Azure OpenAI
+```
 
-The AI evaluates:
+---
+
+# 🤖 AI Capabilities
+
+## AI Procurement
+
+Evaluates procurement requests using live operational data.
+
+Checks:
 
 - Inventory availability
+- Supplier information
 - Warehouse capacity
 - Temperature compatibility
-- Supplier information
 - Incoming shipments
-- Procurement justification
 
 Returns:
 
@@ -92,76 +119,38 @@ Returns:
 - Review
 - Reject
 
-with detailed reasoning and supporting evidence.
+with reasoning and evidence.
 
 ---
 
-## 📈 AI Insights
+## AI Insights
 
-Executive operational insights generated from live backend data.
+Provides:
 
-Includes:
-
-- Executive summary
-- Inventory health
-- Warehouse insights
-- Shipment insights
-- Procurement insights
+- Executive Summary
+- Inventory Health
+- Warehouse Insights
+- Shipment Insights
+- Procurement Insights
 - Alerts
 - Recommendations
-- Trend summaries
 
 ---
 
-## 💬 Executive Copilot
+## Executive Copilot
 
-Natural language operational assistant.
+Natural language assistant capable of answering operational questions using backend tools and AI reasoning.
 
-Example questions:
+Example prompts:
 
-> Show delayed shipments.
-
-> Which warehouse is nearly full?
-
-> Why was this procurement request rejected?
-
-> What should operations prioritise today?
-
-Responses include:
-
-- Decision reasoning
-- Tool execution timeline
-- Supporting evidence
-- Confidence level
-- Recommendations
+- Show delayed shipments
+- Which warehouse is nearly full?
+- Which products are running low?
+- Why was this procurement request rejected?
 
 ---
 
-# Architecture
-
-```
-                    React + TypeScript
-                            │
-                     TanStack Router
-                            │
-                      React Query
-                            │
-────────────────────────────────────────────────
-                     FastAPI Backend
-────────────────────────────────────────────────
-                            │
-                    Business Services
-                            │
-                    SQLAlchemy ORM
-                            │
-                      PostgreSQL
-                            │
-                 OpenAI / Azure OpenAI
-```
-
----
-
-# Technology Stack
+# ⚙️ Technology Stack
 
 ## Frontend
 
@@ -172,162 +161,70 @@ Responses include:
 - Tailwind CSS
 - shadcn/ui
 - Recharts
-- Lucide Icons
-
----
 
 ## Backend
 
 - Python 3.13
 - FastAPI
-- SQLAlchemy 2.0
+- SQLAlchemy 2
 - Alembic
 - PostgreSQL
-
----
 
 ## AI
 
 - OpenAI
 - Azure OpenAI (supported)
 - Prompt Engineering
-- Tool Calling
-- Deterministic AI Workflows
 
 ---
 
-## Security
+# 🔐 Security
 
 - JWT Authentication
 - Refresh Tokens
-- Role-Based Access Control (RBAC)
+- RBAC
+- Protected Routes
 - Password Hashing
-- Protected API Endpoints
 
 ---
 
-# Application Architecture
+# 📁 Project Structure
 
-```
-Frontend
-│
-├── Dashboard
-├── Inventory
-├── Warehouse
-├── Shipments
-├── AI Procurement
-├── AI Insights
-└── Executive Copilot
-
-            │
-
-React Query API Layer
-
-            │
-
-FastAPI
-
-            │
-
-Business Services
-
-            │
-
-Repositories
-
-            │
-
-SQLAlchemy
-
-            │
-
-PostgreSQL
-```
-
----
-
-# Project Structure
-
-```
+```text
 PharmaChain
 │
 ├── frontend/
-│   ├── src/
-│   ├── components/
-│   ├── routes/
-│   └── lib/
-│
 ├── backend/
-│   ├── app/
-│   ├── api/
-│   ├── services/
-│   ├── repositories/
-│   ├── models/
-│   ├── schemas/
-│   └── core/
-│
-└── docs/
+├── docs/
+│   └── images/
+├── README.md
+└── LICENSE
 ```
 
 ---
 
-# Backend APIs
+# 🔌 API Overview
 
-Examples include:
+| Method | Endpoint | Purpose |
+|---------|----------|---------|
+| GET | /api/dashboard/summary | Dashboard KPIs |
+| GET | /api/inventory | Inventory |
+| GET | /api/warehouse-zones | Warehouse |
+| GET | /api/shipments | Shipments |
+| POST | /api/ai/procurement/analyze | AI Procurement |
+| GET | /api/ai/insights | AI Insights |
+| POST | /api/ai/copilot/chat | Executive Copilot |
 
+---
+
+# 🚀 Getting Started
+
+## Clone
+
+```bash
+git clone https://github.com/VDhimar09/PharmaChain-AI-Clinical-Supply-Chain-Copilot.git
+cd PharmaChain-AI-Clinical-Supply-Chain-Copilot
 ```
-GET    /api/dashboard/summary
-
-GET    /api/inventory
-
-GET    /api/warehouse-zones
-
-GET    /api/shipments
-
-POST   /api/ai/procurement/analyze
-
-GET    /api/ai/insights
-
-POST   /api/ai/copilot/chat
-```
-
----
-
-# Authentication
-
-The application includes:
-
-- JWT Access Tokens
-- Refresh Tokens
-- Login
-- Logout
-- Current User endpoint
-- Role-Based Access Control
-- Protected API routes
-
----
-
-# Screenshots
-
-> Add screenshots here.
-
-Dashboard
-
-Inventory
-
-Warehouse
-
-Shipments
-
-AI Procurement
-
-AI Insights
-
-Executive Copilot
-
----
-
-# Running Locally
 
 ## Backend
 
@@ -341,8 +238,6 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
----
-
 ## Frontend
 
 ```bash
@@ -355,23 +250,19 @@ npm run dev
 
 ---
 
-# Environment Variables
+# 🌍 Environment Variables
 
-Backend
+Backend:
 
 ```env
 DATABASE_URL=
-
 JWT_SECRET_KEY=
-
 OPENAI_API_KEY=
-
 AZURE_OPENAI_ENDPOINT=
-
 AZURE_OPENAI_API_KEY=
 ```
 
-Frontend
+Frontend:
 
 ```env
 VITE_API_BASE_URL=http://localhost:8000
@@ -379,30 +270,62 @@ VITE_API_BASE_URL=http://localhost:8000
 
 ---
 
-# Future Enhancements
+# 🧪 Testing
 
-- Predictive demand forecasting
-- AI anomaly detection
-- Supplier performance analytics
-- Interactive warehouse heatmaps
-- Notification centre
-- Export to PDF / Excel
-- Multi-warehouse optimisation
-- Advanced reporting
+Frontend
+
+```bash
+npm exec tsc --noEmit
+npm run build
+```
+
+Backend
+
+```bash
+pytest
+```
 
 ---
 
-# Author
+# 🛣️ Roadmap
+
+- Predictive demand forecasting
+- Supplier analytics
+- Notification centre
+- Export reports
+- Warehouse heatmaps
+- Multi-site optimisation
+
+---
+
+# 👩‍💻 Author
 
 **Vibhuti Dhimar**
 
 Software Engineer | AI Engineer | Product Builder
 
-- GitHub: https://github.com/VDhimar09
-- LinkedIn: https://www.linkedin.com/in/vibhutidhimar/
+GitHub: https://github.com/VDhimar09
+
+LinkedIn: https://www.linkedin.com/in/vibhutidhimar/
 
 ---
 
-# License
+# 📄 License
 
 This project is licensed under the MIT License.
+
+---
+
+## ⭐ Project Highlights
+
+- Live frontend integrated with FastAPI backend
+- AI Procurement workflow
+- AI Insights dashboard
+- Executive Copilot
+- JWT Authentication & RBAC
+- PostgreSQL persistence
+- React Query data layer
+- TypeScript frontend
+- Modular service architecture
+
+If you found this project interesting, please consider giving it a ⭐ on GitHub.
