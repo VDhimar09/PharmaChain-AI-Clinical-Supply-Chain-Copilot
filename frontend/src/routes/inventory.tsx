@@ -5,9 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Search, Thermometer, Boxes, AlertTriangle, Clock, CheckCircle2 } from "lucide-react";
 import { useMemo, useState } from "react";
-import { inventory } from "@/lib/mock-data";
 import { StatusBadge, statusTone } from "@/components/StatusBadge";
 import { AiInsight } from "@/components/AiInsight";
+import { useInventory } from "@/lib/api/hooks";
 
 export const Route = createFileRoute("/inventory")({
   head: () => ({
@@ -22,34 +22,36 @@ export const Route = createFileRoute("/inventory")({
 function InventoryPage() {
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string>("All");
+  const { data: inventory = [], isLoading, isError } = useInventory();
 
   const filtered = useMemo(() => {
     const term = q.toLowerCase();
     return inventory.filter(
       (i) =>
         (cat === "All" || i.category === cat) &&
-        (i.name.toLowerCase().includes(term) || i.sku.toLowerCase().includes(term)),
+        (i.product_name.toLowerCase().includes(term) || i.sku.toLowerCase().includes(term)),
     );
   }, [q, cat]);
 
   const summary = useMemo(() => {
-    const total = inventory.reduce((a, i) => a + i.available, 0);
+    const total = inventory.reduce((a, i) => a + i.available_quantity, 0);
     const critical = inventory.filter((i) => i.status === "Critical").length;
     const low = inventory.filter((i) => i.status === "Low Stock").length;
     const expiring = inventory.filter((i) => i.status === "Expiring Soon").length;
     const healthy = inventory.filter((i) => i.status === "In Stock").length;
     return { total, critical, low, expiring, healthy };
-  }, []);
+  }, [inventory]);
+  const inventoryUnavailable = isLoading || isError;
 
   return (
     <AppLayout>
       <div className="space-y-6">
         {/* KPI summary */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <KpiTile icon={Boxes} label="Total units" value={summary.total.toLocaleString()} caption={`${inventory.length} SKUs tracked`} tone="primary" />
-          <KpiTile icon={CheckCircle2} label="Healthy SKUs" value={String(summary.healthy)} caption="In stock & in spec" tone="success" />
-          <KpiTile icon={AlertTriangle} label="Low / critical" value={String(summary.low + summary.critical)} caption={`${summary.critical} critical · ${summary.low} low`} tone="warning" />
-          <KpiTile icon={Clock} label="Expiring soon" value={String(summary.expiring)} caption="< 30 days to expiry" tone="info" />
+          <KpiTile icon={Boxes} label="Total units" value={inventoryUnavailable ? "Unavailable" : summary.total.toLocaleString()} caption={isLoading ? "Loading inventory" : isError ? "No backend data" : `${inventory.length} SKUs tracked`} tone="primary" />
+          <KpiTile icon={CheckCircle2} label="Healthy SKUs" value={inventoryUnavailable ? "Unavailable" : String(summary.healthy)} caption="In stock & in spec" tone="success" />
+          <KpiTile icon={AlertTriangle} label="Low / critical" value={inventoryUnavailable ? "Unavailable" : String(summary.low + summary.critical)} caption={inventoryUnavailable ? "Unavailable" : `${summary.critical} critical · ${summary.low} low`} tone="warning" />
+          <KpiTile icon={Clock} label="Expiring soon" value={inventoryUnavailable ? "Unavailable" : String(summary.expiring)} caption={inventoryUnavailable ? "Unavailable" : "< 30 days to expiry"} tone="info" />
         </div>
 
         {/* AI insight */}
@@ -120,7 +122,7 @@ function InventoryPage() {
                         {critical && (
                           <span className="absolute left-0 top-2 bottom-2 w-0.5 rounded-full bg-destructive" />
                         )}
-                        {i.name}
+                        {i.product_name}
                       </TableCell>
                       <TableCell className="text-muted-foreground font-mono text-xs">{i.sku}</TableCell>
                       <TableCell>
@@ -131,12 +133,12 @@ function InventoryPage() {
                       <TableCell>
                         <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                           <Thermometer className="size-3" />
-                          {i.temperature}
+                          {i.temperature_requirement}
                         </span>
                       </TableCell>
-                      <TableCell className="text-right tabular-nums font-medium">{i.available.toLocaleString()}</TableCell>
-                      <TableCell className="text-right tabular-nums text-muted-foreground">{i.reserved.toLocaleString()}</TableCell>
-                      <TableCell className="text-sm tabular-nums">{i.expiry}</TableCell>
+                      <TableCell className="text-right tabular-nums font-medium">{i.available_quantity.toLocaleString()}</TableCell>
+                      <TableCell className="text-right tabular-nums text-muted-foreground">{i.reserved_quantity.toLocaleString()}</TableCell>
+                      <TableCell className="text-sm tabular-nums">{i.expiry_date}</TableCell>
                       <TableCell><StatusBadge label={i.status} tone={statusTone(i.status)} /></TableCell>
                     </TableRow>
                   );
@@ -144,7 +146,7 @@ function InventoryPage() {
                 {filtered.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
-                      No products match your search.
+                      {isLoading ? "Loading inventory…" : isError ? "Unable to load inventory." : "No products match your search."}
                     </TableCell>
                   </TableRow>
                 )}
