@@ -17,10 +17,12 @@ from app.services.retriever_service import RetrievalResult
 
 
 DOCUMENT_ID = uuid4()
+CHUNK_ID = uuid4()
 
 FAKE_RESULTS = [
     RetrievalResult(
         document_id=DOCUMENT_ID,
+        chunk_id=CHUNK_ID,
         filename="Cold_Chain_SOP.pdf",
         page_number=12,
         content="Temperature excursions must be logged within one hour.",

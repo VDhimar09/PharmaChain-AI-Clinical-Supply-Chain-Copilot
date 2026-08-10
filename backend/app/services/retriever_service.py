@@ -24,6 +24,7 @@ logger = get_logger("retriever_service")
 @dataclass(frozen=True)
 class RetrievalResult:
     document_id: uuid.UUID
+    chunk_id: uuid.UUID
     filename: str
     page_number: int
     content: str
@@ -83,6 +84,7 @@ class RetrieverService:
         results = [
             RetrievalResult(
                 document_id=candidate.chunk.document_id,
+                chunk_id=candidate.chunk.id,
                 filename=candidate.chunk.document.original_filename,
                 page_number=candidate.chunk.page_number,
                 content=candidate.chunk.content,

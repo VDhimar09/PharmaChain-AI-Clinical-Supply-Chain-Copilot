@@ -6,11 +6,13 @@ from app.services.retriever_service import RetrievalResult
 
 DOC_A = uuid4()
 DOC_B = uuid4()
+CHUNK_A = uuid4()
 
 
-def _result(document_id, page_number, content, similarity=0.9):
+def _result(document_id, page_number, content, similarity=0.9, chunk_id=None):
     return RetrievalResult(
         document_id=document_id,
+        chunk_id=chunk_id or uuid4(),
         filename=f"{document_id}.pdf",
         page_number=page_number,
         content=content,
@@ -21,6 +23,7 @@ def _result(document_id, page_number, content, similarity=0.9):
 def test_build_preserves_source_metadata():
     result = RetrievalResult(
         document_id=DOC_A,
+        chunk_id=CHUNK_A,
         filename="Cold_Chain_SOP.pdf",
         page_number=12,
         content="Temperature excursions must be logged within one hour.",
@@ -33,6 +36,7 @@ def test_build_preserves_source_metadata():
     item = context.items[0]
     assert item.source_id == "SOURCE_1"
     assert item.document_id == DOC_A
+    assert item.chunk_id == CHUNK_A
     assert item.filename == "Cold_Chain_SOP.pdf"
     assert item.page_number == 12
     assert item.content == result.content
@@ -85,6 +89,31 @@ def test_build_deduplicates_identical_chunks():
     context = ContextBuilder().build(results)
 
     assert len(context.items) == 1
+
+
+def test_build_deduplicates_by_chunk_id_not_object_identity():
+    # Two separate RetrievalResult instances sharing the same chunk_id
+    # (e.g. the same chunk retrieved twice) must still be deduplicated.
+    shared_chunk_id = uuid4()
+    first = _result(DOC_A, 12, "same chunk", chunk_id=shared_chunk_id)
+    second = _result(DOC_A, 12, "same chunk", chunk_id=shared_chunk_id)
+
+    context = ContextBuilder().build([first, second])
+
+    assert len(context.items) == 1
+    assert context.items[0].chunk_id == shared_chunk_id
+
+
+def test_build_does_not_deduplicate_distinct_chunk_ids_with_identical_content():
+    # chunk_id is the identity, not content - two genuinely different
+    # chunks that happen to contain identical text must both survive.
+    first = _result(DOC_A, 1, "identical text")
+    second = _result(DOC_A, 2, "identical text")
+
+    context = ContextBuilder().build([first, second])
+
+    assert len(context.items) == 2
+    assert context.items[0].chunk_id != context.items[1].chunk_id
 
 
 def test_build_respects_max_chunks_limit():

@@ -24,6 +24,7 @@ class ContextItem:
 
     source_id: str
     document_id: uuid.UUID
+    chunk_id: uuid.UUID
     filename: str
     page_number: int
     content: str
@@ -41,9 +42,10 @@ class BuiltContext:
 class ContextBuilder:
     """Builds LLM-ready context from retrieved document chunks.
 
-    - Preserves source metadata (document id, filename, page, similarity)
-      so citations can later be resolved without trusting the LLM.
-    - Drops duplicate chunks (same document/page/content).
+    - Preserves source metadata (chunk id, document id, filename, page,
+      similarity) so citations can later be resolved without trusting the
+      LLM.
+    - Drops duplicate chunks by chunk_id, the chunk's true identity.
     - Assigns stable, deterministic source identifiers (SOURCE_1, SOURCE_2,
       ...) in retrieval-rank order, scoped to a single build() call.
     - Respects a configurable chunk count and character budget so prompt
@@ -88,6 +90,7 @@ class ContextBuilder:
                 ContextItem(
                     source_id=source_id,
                     document_id=result.document_id,
+                    chunk_id=result.chunk_id,
                     filename=result.filename,
                     page_number=result.page_number,
                     content=result.content,
@@ -103,16 +106,16 @@ class ContextBuilder:
         self,
         results: list[RetrievalResult],
     ) -> list[RetrievalResult]:
-        seen: set[tuple[uuid.UUID, int, str]] = set()
+        # chunk_id is the chunk's true identity, so it is the dedup key -
+        # stronger than comparing (document, page, content) tuples.
+        seen: set[uuid.UUID] = set()
         deduplicated: list[RetrievalResult] = []
 
         for result in results:
-            key = (result.document_id, result.page_number, result.content)
-
-            if key in seen:
+            if result.chunk_id in seen:
                 continue
 
-            seen.add(key)
+            seen.add(result.chunk_id)
             deduplicated.append(result)
 
         return deduplicated

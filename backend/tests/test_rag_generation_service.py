@@ -27,9 +27,17 @@ class _StubRetriever:
         return self._results
 
 
-def _result(document_id, page_number, content, filename=None, similarity=0.9):
+def _result(
+    document_id,
+    page_number,
+    content,
+    filename=None,
+    similarity=0.9,
+    chunk_id=None,
+):
     return RetrievalResult(
         document_id=document_id,
+        chunk_id=chunk_id or uuid4(),
         filename=filename or f"{document_id}.pdf",
         page_number=page_number,
         content=content,
