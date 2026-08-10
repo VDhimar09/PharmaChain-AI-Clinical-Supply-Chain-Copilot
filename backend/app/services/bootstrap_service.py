@@ -38,6 +38,7 @@ ROLE_PERMISSIONS = {
         ("documents.upload", "Upload documents for RAG ingestion"),
         ("documents.delete", "Delete uploaded documents"),
         ("rag.search", "Run semantic search over ingested documents"),
+        ("rag.query", "Ask grounded questions against ingested documents"),
     ],
 
     "Operations Manager": [
@@ -51,6 +52,7 @@ ROLE_PERMISSIONS = {
 
         ("documents.read", "View uploaded documents"),
         ("rag.search", "Run semantic search over ingested documents"),
+        ("rag.query", "Ask grounded questions against ingested documents"),
     ],
 
     "Warehouse Manager": [
@@ -89,6 +91,7 @@ ROLE_PERMISSIONS = {
 
         ("documents.read", "View uploaded documents"),
         ("rag.search", "Run semantic search over ingested documents"),
+        ("rag.query", "Ask grounded questions against ingested documents"),
     ],
 }
 

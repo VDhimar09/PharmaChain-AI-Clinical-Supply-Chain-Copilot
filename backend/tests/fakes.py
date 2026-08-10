@@ -12,6 +12,8 @@ import math
 
 from app.services.embeddings.base_provider import EmbeddingError
 from app.services.embeddings.base_provider import EmbeddingProvider
+from app.services.llm.base_provider import LLMError
+from app.services.llm.base_provider import LLMProvider
 
 
 def build_minimal_pdf(pages_text: list[str]) -> bytes:
@@ -123,3 +125,38 @@ class FakeEmbeddingProvider(EmbeddingProvider):
             magnitude = 1.0
 
         return [component / magnitude for component in vector]
+
+
+class FakeLLMProvider(LLMProvider):
+    """Deterministic LLM provider for tests - never calls a real model.
+
+    Configure with either a single `response` (returned for every call)
+    or a `responses` queue (one per call, in order). Set `fail=True` to
+    simulate a provider failure (e.g. timeout/API error) instead.
+    """
+
+    def __init__(
+        self,
+        response: str = "",
+        responses: list[str] | None = None,
+        fail: bool = False,
+        error_message: str = "Simulated LLM failure",
+    ):
+        self._response = response
+        self._responses = list(responses) if responses is not None else None
+        self._fail = fail
+        self._error_message = error_message
+        self.calls: list[dict[str, str]] = []
+
+    def generate(self, *, system_prompt: str, user_prompt: str) -> str:
+        self.calls.append(
+            {"system_prompt": system_prompt, "user_prompt": user_prompt}
+        )
+
+        if self._fail:
+            raise LLMError(self._error_message)
+
+        if self._responses is not None:
+            return self._responses.pop(0)
+
+        return self._response
