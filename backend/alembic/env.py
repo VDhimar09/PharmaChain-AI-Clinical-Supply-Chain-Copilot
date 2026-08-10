@@ -7,6 +7,8 @@ from sqlalchemy import pool
 from app.core.config import settings
 from app.models.audit_log import AuditLog  # noqa: F401
 from app.models.base import Base
+from app.models.document import Document  # noqa: F401
+from app.models.document_chunk import DocumentChunk  # noqa: F401
 from app.models.inventory import Inventory  # noqa: F401
 from app.models.permission import Permission  # noqa: F401
 from app.models.procurement_request import ProcurementRequest  # noqa: F401

@@ -34,3 +34,6 @@ htmlcov/
 
 # Old frontend backup
 frontend-old/
+
+# Uploaded RAG source documents (never committed)
+backend/storage/

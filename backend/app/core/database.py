@@ -5,9 +5,13 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 
 
+# SQL echo includes full statement parameters - now that RAG stores
+# document chunk text and embedding vectors, that output must not reach
+# logs outside local development. Any ENVIRONMENT value other than the
+# "development" default (e.g. "production", "staging") disables it.
 engine = create_engine(
     settings.DATABASE_URL,
-    echo=True
+    echo=settings.ENVIRONMENT == "development"
 )
 
 SessionLocal = sessionmaker(

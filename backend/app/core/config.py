@@ -34,6 +34,26 @@ class Settings(BaseSettings):
     AZURE_OPENAI_API_KEY: str | None = None
 
     # ==========================================
+    # RAG / Document Ingestion
+    # ==========================================
+    RAG_STORAGE_DIR: str = "storage/documents"
+
+    RAG_MAX_UPLOAD_SIZE_BYTES: int = 25 * 1024 * 1024  # 25 MB
+    RAG_ALLOWED_MIME_TYPES: str = "application/pdf"
+    RAG_ALLOWED_EXTENSIONS: str = ".pdf"
+
+    RAG_CHUNK_SIZE: int = 1000
+    RAG_CHUNK_OVERLAP: int = 150
+    RAG_MIN_CHUNK_SIZE: int = 100
+
+    RAG_EMBEDDING_PROVIDER: str = "openai"
+    RAG_EMBEDDING_MODEL: str = "text-embedding-3-small"
+    RAG_EMBEDDING_DIMENSION: int = 1536
+
+    RAG_SEARCH_TOP_K: int = 5
+    RAG_SIMILARITY_THRESHOLD: float = 0.5
+
+    # ==========================================
     # CORS
     # ==========================================
     CORS_ORIGINS: str = (
