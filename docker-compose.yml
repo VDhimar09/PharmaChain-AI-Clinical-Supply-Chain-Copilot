@@ -4,7 +4,7 @@ version: "3.9"
 
 services:
   db:
-    image: postgres:16
+    image: pgvector/pgvector:pg16
     container_name: pharmachain-db
 
     restart: unless-stopped
@@ -15,7 +15,9 @@ services:
       POSTGRES_PASSWORD: pharmachain
 
     ports:
-      - "5432:5432"
+      # Host port 5439 avoids clashing with any native PostgreSQL install
+      # already using 5432 on the host machine.
+      - "5439:5432"
 
     volumes:
       - postgres_data:/var/lib/postgresql/data

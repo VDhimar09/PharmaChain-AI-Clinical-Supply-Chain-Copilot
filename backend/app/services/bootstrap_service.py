@@ -33,6 +33,12 @@ ROLE_PERMISSIONS = {
         ("copilot.use", "Use Executive Copilot"),
         ("audit.read", "View audit logs"),
         ("system.monitor", "Monitor background jobs"),
+
+        ("documents.read", "View uploaded documents"),
+        ("documents.upload", "Upload documents for RAG ingestion"),
+        ("documents.delete", "Delete uploaded documents"),
+        ("rag.search", "Run semantic search over ingested documents"),
+        ("rag.query", "Ask grounded questions against ingested documents"),
     ],
 
     "Operations Manager": [
@@ -43,6 +49,10 @@ ROLE_PERMISSIONS = {
 
         ("insights.view", "View AI Insights"),
         ("copilot.use", "Use Executive Copilot"),
+
+        ("documents.read", "View uploaded documents"),
+        ("rag.search", "Run semantic search over ingested documents"),
+        ("rag.query", "Ask grounded questions against ingested documents"),
     ],
 
     "Warehouse Manager": [
@@ -78,6 +88,10 @@ ROLE_PERMISSIONS = {
         ("supplier.read", "View suppliers"),
         ("procurement.read", "View procurement"),
         ("insights.view", "View AI Insights"),
+
+        ("documents.read", "View uploaded documents"),
+        ("rag.search", "Run semantic search over ingested documents"),
+        ("rag.query", "Ask grounded questions against ingested documents"),
     ],
 }
 

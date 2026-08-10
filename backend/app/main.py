@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import Depends
+from sqlalchemy import text
 import logging
 
 from app.core.database import engine
@@ -22,6 +23,8 @@ from app.models.role import Role
 from app.models.permission import Permission
 from app.models.user import User
 from app.models.refresh_token import RefreshToken
+from app.models.document import Document
+from app.models.document_chunk import DocumentChunk
 
 from app.api.products import router as product_router
 from app.api.suppliers import router as supplier_router
@@ -40,12 +43,20 @@ from app.api.ai_chat import router as ai_chat_router
 from app.api.audit import router as audit_router
 from app.api.system_jobs import router as system_jobs_router
 from app.api.auth import router as auth_router
+from app.api.documents import router as documents_router
+from app.api.rag import router as rag_router
 from app.services.bootstrap_service import BootstrapService
 from app.services.seed_data_service import SeedDataService
 
 
 logger = logging.getLogger(__name__)
 
+
+# The `document_chunks.embedding` column uses the pgvector `vector` type,
+# so the extension must exist before table creation runs below.
+with engine.connect() as connection:
+    connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+    connection.commit()
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -121,6 +132,10 @@ app.include_router(system_jobs_router, dependencies=protected_dependencies)
 app.include_router(procurement_ai_router, dependencies=protected_dependencies)
 app.include_router(ai_router, dependencies=protected_dependencies)
 app.include_router(ai_chat_router, dependencies=protected_dependencies)
+
+# RAG
+app.include_router(documents_router, dependencies=protected_dependencies)
+app.include_router(rag_router, dependencies=protected_dependencies)
 
 # ----------------------------
 # Root Endpoint

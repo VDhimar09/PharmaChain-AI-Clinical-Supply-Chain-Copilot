@@ -6,6 +6,7 @@ sqlalchemy==2.0.41
 greenlet==3.2.3
 psycopg2-binary==2.9.12
 alembic==1.16.2
+pgvector==0.3.6
 
 pydantic==2.11.7
 pydantic-settings==2.10.1
@@ -15,5 +16,10 @@ passlib==1.7.4
 bcrypt==4.3.0
 
 python-dotenv==1.1.1
+python-multipart==0.0.20
 
 APScheduler==3.11.3
+
+# RAG
+pypdf==5.1.0
+openai==1.109.1
