@@ -4,6 +4,9 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
+from app.schemas.rag import RagCitation
+from app.schemas.grounded_copilot import DocumentEvidenceItem
+
 
 class CopilotChatRequest(BaseModel):
     message: str
@@ -39,3 +42,15 @@ class CopilotChatResponse(BaseModel):
     evidence: CopilotEvidenceBundle
     recommendations: list[str]
     response: str
+
+    # Phase 3: RAG-grounded Copilot integration. All defaulted so every
+    # existing `/api/ai/copilot/chat` caller that only used the
+    # operational fields above keeps working unchanged - an
+    # operational-only question still gets `evidence_requirement`
+    # defaulting to "OPERATIONAL", `grounded=None` (not applicable - the
+    # deterministic Copilot response was never LLM-generated), and empty
+    # `document_evidence`/`citations`.
+    evidence_requirement: str = "OPERATIONAL"
+    grounded: bool | None = None
+    document_evidence: list[DocumentEvidenceItem] = Field(default_factory=list)
+    citations: list[RagCitation] = Field(default_factory=list)

@@ -80,6 +80,80 @@ Each layer depends on abstractions or stable contracts instead of hard-coded orc
 - Interface Segregation Principle: small focused contracts keep modules from depending on unrelated behavior.
 - Dependency Inversion Principle: `ReasoningPlanner` depends on `PlanningStrategy`, not a concrete planner implementation.
 
+## Grounded Copilot: RAG Integration (Phase 3)
+
+The reasoning pipeline above (Executive Copilot) and the RAG document pipeline (`RetrieverService` → `ContextBuilder` → `RagGenerationService`, see `POST /api/rag/query`) were built and shipped as two independent systems. **RAG was not part of the Copilot before this phase.** Phase 3 integrates them at a single, explicit boundary - `GroundedCopilotService` (`app/services/grounded_copilot_service.py`) - without rewriting either system and without turning RAG into "just another Copilot tool". Operational evidence (live database facts) and document evidence (retrieved PDF chunks) keep different trust semantics all the way through.
+
+### Where it connects
+
+```
+POST /api/ai/copilot/chat
+        |
+        v
+GroundedCopilotService.chat(message)
+        |
+        v
+EvidenceRequirementDetector.detect(message)
+        |
+   -------------------------------------------------
+   |                    |                          |
+OPERATIONAL          DOCUMENT          OPERATIONAL_AND_DOCUMENT
+   |                    |                          |
+   v                    v                          v
+CopilotOrchestratorService   RagGenerationService   both gathered independently,
+(unchanged)                  (unchanged)            then combined via one grounded
+   |                    |                          LLM synthesis call
+   v                    v                          |
+CopilotChatResponse   CopilotChatResponse           v
+                                              CopilotChatResponse
+                                              (response cites document
+                                               evidence via SOURCE_N,
+                                               validated server-side)
+```
+
+### Evidence requirement detection
+
+`EvidenceRequirementDetector` (`app/ai/evidence_requirement.py`) classifies a question into `OPERATIONAL`, `DOCUMENT`, or `OPERATIONAL_AND_DOCUMENT` using a deterministic keyword check, not an LLM call. It is intentionally separate from `IntentEngine`, which classifies *which operational tools* a question needs - `IntentEngine` is reused read-only as a signal ("does this also look operational?"), never modified or replaced.
+
+### The shared evidence contract
+
+`app/schemas/grounded_copilot.py` defines a typed contract used internally by `GroundedCopilotService`:
+
+```
+GroundedEvidence
+|-- operational_evidence: list[OperationalEvidenceItem]   (tool, tool_key, status, data)
+`-- document_evidence:    list[DocumentEvidenceItem]      (source_id, document_id, chunk_id,
+                                                             filename, page_number, content,
+                                                             similarity)
+```
+
+`OperationalEvidenceItem` reshapes the existing `CopilotEvidenceBundle` (no new tool execution, no recomputation). `DocumentEvidenceItem` mirrors `ContextItem`/`Citation` from the RAG pipeline - it does not introduce a second citation system. Citation trust stays entirely inside `app/services/citation_resolver.py` (extracted from `RagGenerationService` in this phase so both `RagGenerationService` and `GroundedCopilotService` resolve `SOURCE_N` references through the exact same, single validation path - an LLM-invented source id is always dropped, never surfaced).
+
+### Routing behavior
+
+- **`OPERATIONAL`** - calls `CopilotOrchestratorService.chat()` directly, unchanged. No LLM call. Identical behavior/response shape to before Phase 3 for every operational-only question (e.g. *"Show me delayed shipments."*).
+- **`DOCUMENT`** - calls `RagGenerationService.query()` directly, unchanged, including its own no-evidence fallback (no LLM call at all when nothing relevant was retrieved) and server-side citation validation.
+- **`OPERATIONAL_AND_DOCUMENT`** - both are gathered independently (`CopilotOrchestratorService.chat()` and `RetrieverService.search()` + `ContextBuilder.build()`), assembled into a `GroundedEvidence`, and passed to one LLM synthesis call whose system prompt requires it to: use only the supplied evidence, distinguish live operational state from documented procedure, and cite document evidence with a real `SOURCE_N` id (never an operational fact). The answer is only trusted if `citation_resolver.resolve_citations()` finds at least one real, retrieved source; otherwise the deterministic operational answer is returned instead of an unverified synthesis.
+
+### Failure handling
+
+- An operational tool failure (`AIException`) never fabricates operational evidence - the combined path degrades to a document-only answer via the unchanged RAG pipeline.
+- A document retrieval failure never fabricates document evidence - the combined path degrades to the operational answer alone.
+- If both sources are unavailable, or LLM synthesis itself fails, `GroundedCopilotError` is raised and mapped to `HTTP 503` at the API layer (mirrors `RagGenerationError`).
+
+### RBAC
+
+`copilot.use` and `rag.query` are independent permissions. `GroundedCopilotService` checks `rag.query` itself before ever calling `RetrieverService` - a caller with only `copilot.use`:
+
+- gets a normal operational answer for an operational-only or combined question (document evidence is simply never fetched on their behalf for a combined question), and
+- gets `HTTP 403` for a document-only question, rather than a silently empty/fabricated answer.
+
+This reuses the same permission-checking logic `require_permission` is built on (`app.dependencies.auth.user_has_permission`), so there is exactly one RBAC source of truth.
+
+### API compatibility
+
+`CopilotChatResponse` gained four additive, defaulted fields - `evidence_requirement`, `grounded`, `document_evidence`, `citations`. Every pre-Phase-3 field is unchanged, so existing clients/tests that only read `response`, `evidence`, `tools_used`, etc. continue to work without modification.
+
 ## Why This Supports Explainable AI
 
 The system is explainable because it preserves structured intermediate reasoning:

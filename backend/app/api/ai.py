@@ -16,7 +16,11 @@ from app.ai.tools.warehouse_tool import WarehouseTool
 from app.ai.tools.shipment_tool import ShipmentTool
 from app.services.procurement_ai_service import ProcurementEvaluationError
 from app.services.ai_insights_service import AIInsightsService
-from app.services.copilot_orchestrator_service import CopilotOrchestratorService
+from app.services.grounded_copilot_service import (
+    GroundedCopilotError,
+    GroundedCopilotPermissionError,
+    GroundedCopilotService,
+)
 from app.services.procurement_analysis_service import ProcurementAnalysisService
 from app.services.audit_service import AuditService
 
@@ -127,8 +131,30 @@ def copilot_chat(
         require_permission("copilot.use")
     ),
 ):
-    service = CopilotOrchestratorService(db)
-    response = service.chat(request.message)
+    """Executive Copilot, grounded in operational and/or document
+    evidence depending on the question (see `GroundedCopilotService`).
+
+    Operational-only questions continue to use the existing deterministic
+    Copilot pipeline unchanged - no LLM call, no behavior change. Document
+    evidence is only ever retrieved on the caller's behalf if they also
+    hold `rag.query`; `copilot.use` alone never grants document access.
+    """
+
+    service = GroundedCopilotService(db, current_user)
+
+    try:
+        response = service.chat(request.message)
+    except GroundedCopilotPermissionError as exc:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Permission '{exc.permission_name}' required.",
+        )
+    except GroundedCopilotError:
+        raise HTTPException(
+            status_code=503,
+            detail="AI generation is temporarily unavailable. Please try again.",
+        )
+
     response_data = jsonable_encoder(
         response
     )
@@ -146,6 +172,8 @@ def copilot_chat(
             "tools_used": response_data.get("tools_used"),
             "tool_execution": response_data.get("tool_execution"),
             "intent": response_data.get("intent"),
+            "evidence_requirement": response_data.get("evidence_requirement"),
+            "grounded": response_data.get("grounded"),
         },
     )
 

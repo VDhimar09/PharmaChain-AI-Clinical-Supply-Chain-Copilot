@@ -24,16 +24,15 @@ Anti-hallucination strategy, in order:
 
 from __future__ import annotations
 
-import re
 import time
-import uuid
 from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
 
 from app.core.logging import get_logger
+from app.services.citation_resolver import Citation
+from app.services.citation_resolver import resolve_citations
 from app.services.context_builder import ContextBuilder
-from app.services.context_builder import ContextItem
 from app.services.llm.base_provider import LLMError
 from app.services.llm.base_provider import LLMProvider
 from app.services.retriever_service import RetrieverService
@@ -55,19 +54,17 @@ SYSTEM_PROMPT = (
     f'"{FALLBACK_ANSWER}"'
 )
 
-_SOURCE_ID_PATTERN = re.compile(r"SOURCE_\d+")
-
 
 class RagGenerationError(Exception):
     """Raised when a grounded answer could not be generated (e.g. LLM
     failure). Maps to HTTP 503 at the API layer."""
 
 
-@dataclass(frozen=True)
-class Citation:
-    document_id: uuid.UUID
-    filename: str
-    page_number: int
+# `Citation` used to be defined directly in this module. It now lives in
+# `citation_resolver` so `GroundedCopilotService` can share the exact same
+# citation-trust logic instead of a second, competing implementation -
+# re-imported above so existing `from app.services.rag_generation_service
+# import Citation` call sites keep working unchanged.
 
 
 @dataclass(frozen=True)
@@ -152,7 +149,7 @@ class RagGenerationService:
         llm_elapsed_ms = (time.monotonic() - llm_started_at) * 1000
 
         answer_text = raw_answer.strip()
-        citations = self._resolve_citations(answer_text, context.items)
+        citations = resolve_citations(answer_text, context.items)
         grounded = bool(citations) and not self._is_fallback(answer_text)
 
         total_elapsed_ms = (time.monotonic() - started_at) * 1000
@@ -196,39 +193,3 @@ class RagGenerationService:
             "rely on by its identifier (e.g. SOURCE_1)."
         )
 
-    def _resolve_citations(
-        self,
-        answer: str,
-        items: list[ContextItem],
-    ) -> list[Citation]:
-        """Resolve SOURCE_N references in the model's answer against the
-        actual retrieved context. Never trusts citation metadata from the
-        model itself - only the source id token is read from the answer,
-        and everything else is looked up server-side."""
-
-        items_by_source_id = {item.source_id: item for item in items}
-        resolved: list[Citation] = []
-        seen: set[tuple[uuid.UUID, int]] = set()
-
-        for match in _SOURCE_ID_PATTERN.finditer(answer):
-            item = items_by_source_id.get(match.group(0))
-
-            if item is None:
-                # Unknown/fabricated source id - never trusted.
-                continue
-
-            key = (item.document_id, item.page_number)
-
-            if key in seen:
-                continue
-
-            seen.add(key)
-            resolved.append(
-                Citation(
-                    document_id=item.document_id,
-                    filename=item.filename,
-                    page_number=item.page_number,
-                )
-            )
-
-        return resolved

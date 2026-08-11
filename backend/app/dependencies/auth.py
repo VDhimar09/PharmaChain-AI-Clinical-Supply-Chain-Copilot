@@ -114,6 +114,37 @@ def require_role(
     return dependency
 
 
+def user_has_permission(
+    user: User,
+    permission_name: str,
+) -> bool:
+    """
+    Pure RBAC check, usable outside of a FastAPI dependency.
+
+    This is the single source of truth `require_permission` itself is
+    built on. Services that must respect a *subset* of the caller's
+    permissions - e.g. `GroundedCopilotService` deciding whether it may
+    retrieve document evidence on the caller's behalf - call this
+    directly instead of re-implementing permission logic. Never bypasses
+    `system.admin`.
+    """
+
+    if user.role is None:
+        return False
+
+    permissions = {
+        permission.name
+        for permission in (
+            user.role.permissions or []
+        )
+    }
+
+    if "system.admin" in permissions:
+        return True
+
+    return permission_name in permissions
+
+
 def require_permission(
     permission_name: str,
 ) -> Callable:
@@ -137,17 +168,7 @@ def require_permission(
                 detail="User has no assigned role."
             )
 
-        permissions = {
-            permission.name
-            for permission in (
-                current_user.role.permissions or []
-            )
-        }
-
-        if "system.admin" in permissions:
-            return current_user
-
-        if permission_name not in permissions:
+        if not user_has_permission(current_user, permission_name):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Permission '{permission_name}' required."
