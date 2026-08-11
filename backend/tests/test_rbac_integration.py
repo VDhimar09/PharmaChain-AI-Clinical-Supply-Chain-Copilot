@@ -3,6 +3,7 @@ from collections.abc import Iterator
 from datetime import date
 from datetime import datetime
 from datetime import timezone
+from uuid import UUID
 from uuid import uuid4
 
 import pytest
@@ -18,6 +19,8 @@ from app.models.permission import Permission
 from app.models.role import Role
 from app.models.user import User
 from app.repositories.role_repository import RoleRepository
+from app.services.retriever_service import RetrievalResult
+from tests.fakes import FakeLLMProvider
 
 
 UUID_1 = "11111111-1111-1111-1111-111111111111"
@@ -875,6 +878,124 @@ def test_executive_copilot_requires_copilot_permission(
     assert allowed_response.status_code == 200
     assert denied_response.status_code == 403
     assert denied_response.json()["detail"] == "Permission 'copilot.use' required."
+
+
+def test_copilot_combined_question_without_rag_query_permission_omits_document_evidence(
+    client: TestClient,
+    user_factory: Callable[..., tuple[str, str]],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Warehouse Manager holds `copilot.use` but not `rag.query` (see
+    # BootstrapService.ROLE_PERMISSIONS) - a combined question must still
+    # get an operational answer, but document evidence must never be
+    # fetched on the caller's behalf.
+    _install_service_stubs(monkeypatch)
+    retriever_calls: list[str] = []
+    monkeypatch.setattr(
+        "app.services.retriever_service.RetrieverService.search",
+        lambda self, query: retriever_calls.append(query) or [],
+    )
+    email, password = user_factory(
+        role_name="Warehouse Manager",
+        use_seeded_role=True,
+    )
+    token = _login(client, email, password)["access_token"]
+
+    response = _request(
+        client,
+        "POST",
+        "/api/ai/copilot/chat",
+        token,
+        {"message": "Why is shipment SH-102 at risk, and what does our cold-chain SOP require?"},
+    )
+    body = response.json()
+
+    assert response.status_code == 200
+    assert body["evidence_requirement"] == "OPERATIONAL"
+    assert body["document_evidence"] == []
+    assert body["citations"] == []
+    assert retriever_calls == []
+
+
+def test_copilot_document_only_question_without_rag_query_permission_is_denied(
+    client: TestClient,
+    user_factory: Callable[..., tuple[str, str]],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _install_service_stubs(monkeypatch)
+    email, password = user_factory(
+        role_name="Warehouse Manager",
+        use_seeded_role=True,
+    )
+    token = _login(client, email, password)["access_token"]
+
+    response = _request(
+        client,
+        "POST",
+        "/api/ai/copilot/chat",
+        token,
+        {"message": "What does our cold-chain SOP require?"},
+    )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Permission 'rag.query' required."
+
+
+def test_copilot_combined_question_with_rag_query_permission_returns_grounded_document_evidence(
+    client: TestClient,
+    user_factory: Callable[..., tuple[str, str]],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Administrator holds both `copilot.use` and `rag.query`.
+    _install_service_stubs(monkeypatch)
+    document_id = str(uuid4())
+    monkeypatch.setattr(
+        "app.services.retriever_service.RetrieverService.search",
+        lambda self, query: [
+            RetrievalResult(
+                document_id=UUID(document_id),
+                chunk_id=uuid4(),
+                filename="Cold_Chain_SOP.pdf",
+                page_number=7,
+                content="Store between 2C and 8C.",
+                similarity=0.9,
+            )
+        ],
+    )
+    # Stub the LLM provider directly (rather than requiring a real
+    # OPENAI_API_KEY in the test environment) - `llm_provider` is a lazy
+    # property, so it's swapped for a property returning a fake.
+    monkeypatch.setattr(
+        "app.services.grounded_copilot_service.GroundedCopilotService.llm_provider",
+        property(
+            lambda self: FakeLLMProvider(
+                response=(
+                    "SH-102 is delayed per current operations, and the cold-chain "
+                    "SOP (SOURCE_1) requires storage between 2C and 8C."
+                )
+            )
+        ),
+    )
+    email, password = user_factory(
+        role_name="Administrator",
+        use_seeded_role=True,
+    )
+    token = _login(client, email, password)["access_token"]
+
+    response = _request(
+        client,
+        "POST",
+        "/api/ai/copilot/chat",
+        token,
+        {"message": "Why is shipment SH-102 at risk, and what does our cold-chain SOP require?"},
+    )
+    body = response.json()
+
+    assert response.status_code == 200
+    assert body["evidence_requirement"] == "OPERATIONAL_AND_DOCUMENT"
+    assert body["grounded"] is True
+    assert len(body["citations"]) == 1
+    assert body["citations"][0]["filename"] == "Cold_Chain_SOP.pdf"
 
 
 def test_dashboard_summary_requires_insights_view_permission(
