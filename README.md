@@ -72,7 +72,8 @@ A procurement or capacity decision made without evidence is hard to trust and ha
 - **🚚 Shipments** — Shipment table and status KPIs (In Transit / Delivered / Delayed / Processing) from `GET /api/shipments`.
 - **🤖 AI Procurement** — Compose a request (product, supplier, quantity) and run it through the reasoning engine via `POST /api/ai/procurement/analyze` — returns a decision, confidence score, tool execution trace, reasoning steps and evidence bundle.
 - **📈 AI Insights** — A single operations centre — executive KPIs, alerts, inventory/warehouse/shipment/procurement breakdowns, recommendations and trend charts — all from one call to `GET /api/ai/insights`.
-- **💬 Executive Copilot** — A conversational interface over the same reasoning engine (`POST /api/ai/copilot/chat`) — ask an operational question, get a structured, explainable answer with its tool execution trace.
+- **💬 Executive Copilot** — A conversational interface over the same reasoning engine (`POST /api/ai/copilot/chat`) — ask an operational question, get a structured, explainable answer with its tool execution trace. Questions that also need documented policy (e.g. *"Why is shipment SH-102 at risk, and what does our cold-chain SOP require?"*) are additionally grounded in retrieved document evidence — see [Grounded Copilot](#-grounded-copilot-rag--executive-copilot).
+- **📚 Document Q&A (RAG)** — Upload PDFs (SOPs, policies, procedures), then ask questions answered strictly from retrieved chunks via `POST /api/rag/query` — citations are validated server-side and fabricated sources are never surfaced (`POST /api/documents`, `POST /api/rag/search`, `POST /api/rag/query`).
 - **🔐 Auth & RBAC** — JWT access/refresh tokens and five permission-scoped roles gate every route in the API — see [Authentication & RBAC](#-authentication--rbac).
 
 > All seven modules are pictured together in the [Screenshots Gallery](#-screenshots-gallery).
@@ -151,6 +152,18 @@ Three UI surfaces drive this pipeline directly:
 | `/copilot` — Executive Copilot | `POST /api/ai/copilot/chat` | `CopilotOrchestratorService` |
 
 None of the three call an external LLM — all three run the same in-process `ReasoningPlanner → RuleBasedPlanner → ReasoningEngine → ToolRegistry` pipeline and return their intent, tool execution trace, evidence and reasoning directly to the UI, so every answer is auditable rather than just readable.
+
+### 🔗 Grounded Copilot (RAG + Executive Copilot)
+
+The Executive Copilot above and the RAG document pipeline ([Document Q&A](#-features)) were built as two independent systems and are integrated at a single, explicit boundary: **`GroundedCopilotService`** (`POST /api/ai/copilot/chat`). It does not replace either system or turn RAG into "just another tool" — operational evidence (live DB facts) and document evidence (retrieved PDF chunks) are kept strictly separated end-to-end:
+
+1. `EvidenceRequirementDetector` classifies the question as `OPERATIONAL`, `DOCUMENT`, or `OPERATIONAL_AND_DOCUMENT` (deterministic keyword/intent check, not an LLM call).
+2. **Operational-only** → the existing `CopilotOrchestratorService` pipeline runs unchanged; still no LLM call, identical behavior to before Phase 3.
+3. **Document-only** → the existing `RagGenerationService` runs unchanged (retrieval → bounded context → LLM → server-side citation validation → fixed no-evidence fallback if nothing was retrieved).
+4. **Both** → operational evidence (`CopilotEvidenceBundle`) and document evidence (`RetrieverService` + `ContextBuilder`) are gathered independently, then combined into one LLM synthesis call that is instructed to keep the two kinds of evidence distinct and to cite document evidence only. Citations are re-validated server-side against the retrieved chunks — a `SOURCE_N` id the model invents is dropped, and an answer that cites nothing real is discarded in favor of the trustworthy deterministic operational answer.
+5. **RBAC**: document evidence is only ever fetched if the caller also holds `rag.query` — `copilot.use` alone never grants it. A combined question from a caller without `rag.query` still gets an operational answer; a document-only question from that caller is rejected with 403.
+
+The response schema (`CopilotChatResponse`) is backward compatible — `evidence_requirement`, `grounded`, `document_evidence` and `citations` are additive, defaulted fields, so every pre-Phase-3 caller keeps working unchanged. See [`backend/docs/architecture.md`](backend/docs/architecture.md) for the full write-up.
 
 ---
 
@@ -290,7 +303,12 @@ All routes require a valid JWT unless marked **Public**; most also require the l
 | Method | Endpoint | Description | Permission |
 |---|---|---|---|
 | `GET` | `/api/ai/insights` | Full AI Insights payload | `insights.view` |
-| `POST` | `/api/ai/copilot/chat` | Executive Copilot conversational endpoint | `copilot.use` |
+| `POST` | `/api/ai/copilot/chat` | Executive Copilot — operational and/or document-grounded, see [Grounded Copilot](#-grounded-copilot-rag--executive-copilot) | `copilot.use` (+ `rag.query` for document evidence) |
+| `POST` | `/api/documents/upload` | Upload a PDF for RAG ingestion | `documents.upload` |
+| `GET` | `/api/documents/` | List uploaded documents | `documents.read` |
+| `DELETE` | `/api/documents/{id}` | Delete an uploaded document | `documents.delete` |
+| `POST` | `/api/rag/search` | Semantic search over ingested chunks (evidence only, no LLM) | `rag.search` |
+| `POST` | `/api/rag/query` | Grounded, citation-validated Q&A over ingested documents | `rag.query` |
 | `POST` | `/api/ai/procurement/analyze` | Deterministic AI procurement analysis with reasoning trace | `ai.access` |
 | `GET` | `/api/ai/inventory-summary` | Inventory tool summary (internal/legacy) | `insights.view` |
 | `GET` | `/api/ai/low-stock` | Low-stock tool output (internal/legacy) | `insights.view` |
@@ -328,18 +346,19 @@ All routes require a valid JWT unless marked **Public**; most also require the l
 | **JWT** | Login issues a short-lived **access token** and a longer-lived **refresh token**, signed with `PyJWT` (`HS256`). |
 | **Refresh tokens** | Persisted server-side (`RefreshToken` model) and individually revocable on logout; default lifetimes are **15 minutes** (access) and **7 days** (refresh), both configurable. |
 | **RBAC** | Permission-based — every protected route depends on `require_permission("<permission>")`, and a role is a named bundle of permission strings. `system.admin` is a superuser permission that satisfies every check. |
-| **Protected routes** | Every domain router (`inventory`, `warehouse-zones`, `shipments`, `products`, `suppliers`, `procurement-requests`, `ai`, `dashboard`, `audit`, `system/jobs`) is mounted behind `get_current_user`, and each endpoint additionally checks a specific permission. |
+| **Protected routes** | Every domain router (`inventory`, `warehouse-zones`, `shipments`, `products`, `suppliers`, `procurement-requests`, `ai`, `dashboard`, `audit`, `system/jobs`, `documents`, `rag`) is mounted behind `get_current_user`, and each endpoint additionally checks a specific permission. |
+| **Copilot + RAG boundary** | `copilot.use` never implicitly grants `rag.query`. `GroundedCopilotService` checks both independently — a caller with only `copilot.use` still gets operational Copilot answers, but document evidence is never fetched on their behalf. |
 
 <details>
 <summary><b>Built-in roles and their permissions</b></summary>
 
 | Role | Permissions |
 |---|---|
-| **Administrator** | `system.admin` (all), plus every domain read/write/approve permission |
-| **Operations Manager** | `inventory.read`, `warehouse.read`, `shipment.read`, `procurement.read`, `insights.view`, `copilot.use` |
-| **Warehouse Manager** | `inventory.read`, `inventory.write`, `warehouse.read`, `warehouse.write`, `shipment.read`, `copilot.use` |
-| **Procurement Manager** | `supplier.read`, `supplier.write`, `procurement.read`, `procurement.write`, `procurement.approve`, `inventory.read`, `insights.view`, `copilot.use` |
-| **Viewer** | `inventory.read`, `warehouse.read`, `shipment.read`, `supplier.read`, `procurement.read`, `insights.view` |
+| **Administrator** | `system.admin` (all), plus every domain read/write/approve permission, including `documents.*` and `rag.search`/`rag.query` |
+| **Operations Manager** | `inventory.read`, `warehouse.read`, `shipment.read`, `procurement.read`, `insights.view`, `copilot.use`, `documents.read`, `rag.search`, `rag.query` |
+| **Warehouse Manager** | `inventory.read`, `inventory.write`, `warehouse.read`, `warehouse.write`, `shipment.read`, `copilot.use` — **no** `rag.*`/`documents.*` (Copilot stays operational-only for this role, even for combined questions) |
+| **Procurement Manager** | `supplier.read`, `supplier.write`, `procurement.read`, `procurement.write`, `procurement.approve`, `inventory.read`, `insights.view`, `copilot.use` — **no** `rag.*`/`documents.*` |
+| **Viewer** | `inventory.read`, `warehouse.read`, `shipment.read`, `supplier.read`, `procurement.read`, `insights.view`, `documents.read`, `rag.search`, `rag.query` (no `copilot.use`) |
 
 Roles and permissions are seeded automatically on startup by `BootstrapService`, along with a default administrator controlled by the `BOOTSTRAP_ADMIN_*` environment variables.
 
@@ -460,11 +479,13 @@ pytest
 - [x] AI Procurement analysis, AI Insights operations centre and Executive Copilot chat
 - [x] Audit logging and background shipment-monitor job (APScheduler)
 - [x] Core frontend pages (Dashboard, Inventory, Warehouse, Shipments) migrated from mock data onto live backend endpoints
+- [x] Retrieval-Augmented Generation (RAG) over uploaded PDF documents — ingestion, pgvector similarity search, grounded LLM generation with server-side citation validation (`POST /api/rag/query`)
+- [x] Grounded Executive Copilot — RAG integrated into the Copilot at an explicit evidence boundary (`GroundedCopilotService`) so operational and document evidence stay separated end-to-end — see [Grounded Copilot](#-grounded-copilot-rag--executive-copilot)
 
 **Future**
 
 - [ ] LLM-backed planning strategy (`OPENAI_API_KEY` / `AZURE_OPENAI_*` are already reserved for this)
-- [ ] Retrieval-Augmented Generation (RAG) over operational documents
+- [ ] Frontend UI for grounded Copilot answers (operational vs. document evidence, source citations)
 - [ ] Redis caching layer
 - [ ] CI/CD pipeline (e.g. GitHub Actions)
 - [ ] Automated frontend test suite
