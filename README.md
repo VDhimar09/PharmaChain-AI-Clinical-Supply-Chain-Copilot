@@ -4,7 +4,7 @@
 
 ### AI Clinical Supply Chain Copilot
 
-**An explainable, rule-based AI operations platform for pharmaceutical inventory,<br />warehouse capacity, shipment logistics and procurement decision support.**
+**An explainable AI operations platform — deterministic reasoning plus RAG-grounded document Q&A — for pharmaceutical inventory,<br />warehouse capacity, shipment logistics and procurement decision support.**
 
 [![Python](https://img.shields.io/badge/Python-3.13-3776AB?style=for-the-badge&logo=python&logoColor=white)](backend/requirements.txt)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=for-the-badge&logo=fastapi&logoColor=white)](backend/requirements.txt)
@@ -21,7 +21,7 @@
 </div>
 
 > [!NOTE]
-> The AI layer in this project is a **deterministic, rule-based reasoning engine** — not an LLM wrapper. `OPENAI_API_KEY` / `AZURE_OPENAI_*` exist in configuration as **reserved, currently-unused** settings for a future LLM-backed planner. Every claim in this README is verified against the actual codebase.
+> PharmaChain combines a **deterministic, rule-based Executive Copilot** for live operational reasoning with a **RAG pipeline** (pgvector retrieval + OpenAI-backed grounded generation) for document Q&A, integrated at an explicit evidence boundary (`GroundedCopilotService`) that keeps operational and document evidence separated and auditable. `OPENAI_API_KEY` is required and actively used for RAG embeddings and grounded generation; `AZURE_OPENAI_*` remain **reserved, currently-unused** settings for a future Azure OpenAI provider. Every claim in this README is verified against the actual codebase.
 
 ---
 
@@ -149,9 +149,9 @@ Three UI surfaces drive this pipeline directly:
 |---|---|---|
 | `/assistant` — AI Procurement | `POST /api/ai/procurement/analyze` | `ProcurementAnalysisService` |
 | `/insights` — AI Insights | `GET /api/ai/insights` | `AIInsightsService` |
-| `/copilot` — Executive Copilot | `POST /api/ai/copilot/chat` | `CopilotOrchestratorService` |
+| `/copilot` — Executive Copilot | `POST /api/ai/copilot/chat` | `GroundedCopilotService` (routes to `CopilotOrchestratorService` for operational-only questions) |
 
-None of the three call an external LLM — all three run the same in-process `ReasoningPlanner → RuleBasedPlanner → ReasoningEngine → ToolRegistry` pipeline and return their intent, tool execution trace, evidence and reasoning directly to the UI, so every answer is auditable rather than just readable.
+`/assistant` and `/insights` never call an external LLM — both run the same in-process `ReasoningPlanner → RuleBasedPlanner → ReasoningEngine → ToolRegistry` pipeline. `/copilot` runs that identical deterministic pipeline too for operational-only questions, but a question that also needs document evidence additionally invokes RAG's grounded LLM synthesis — see [Grounded Copilot](#-grounded-copilot-rag--executive-copilot). In every case, intent, tool execution trace, evidence and reasoning are returned directly to the UI, so every answer is auditable rather than just readable.
 
 ### 🔗 Grounded Copilot (RAG + Executive Copilot)
 
@@ -163,7 +163,7 @@ The Executive Copilot above and the RAG document pipeline ([Document Q&A](#-feat
 4. **Both** → operational evidence (`CopilotEvidenceBundle`) and document evidence (`RetrieverService` + `ContextBuilder`) are gathered independently, then combined into one LLM synthesis call that is instructed to keep the two kinds of evidence distinct and to cite document evidence only. Citations are re-validated server-side against the retrieved chunks — a `SOURCE_N` id the model invents is dropped, and an answer that cites nothing real is discarded in favor of the trustworthy deterministic operational answer.
 5. **RBAC**: document evidence is only ever fetched if the caller also holds `rag.query` — `copilot.use` alone never grants it. A combined question from a caller without `rag.query` still gets an operational answer; a document-only question from that caller is rejected with 403.
 
-The response schema (`CopilotChatResponse`) is backward compatible — `evidence_requirement`, `grounded`, `document_evidence` and `citations` are additive, defaulted fields, so every pre-Phase-3 caller keeps working unchanged. See [`backend/docs/architecture.md`](backend/docs/architecture.md) for the full write-up.
+The response schema (`CopilotChatResponse`) is backward compatible — `evidence_requirement`, `grounded`, `document_evidence` and `citations` are additive, defaulted fields, so every pre-Phase-3 caller keeps working unchanged. The `/copilot` page renders all four directly per answer: an evidence-requirement badge (Operational / Document / Operational + Document), a grounded / no-document-evidence badge, an operational-evidence checklist (tool execution), and a document-sources list of server-validated citations only — never raw, unvalidated chunks. Document-oriented suggested prompts are only offered to users holding `rag.query`. See [`backend/docs/architecture.md`](backend/docs/architecture.md) for the full write-up.
 
 ---
 
@@ -185,7 +185,7 @@ The response schema (`CopilotChatResponse`) is backward compatible — `evidence
 </tr>
 <tr>
 <td><b>AI</b></td>
-<td>Deterministic rule-based reasoning (Intent Engine → Planner → Tool Registry → Response Composer). <code>OPENAI_API_KEY</code> / <code>AZURE_OPENAI_*</code> reserved, not currently wired into any code path.</td>
+<td><b>Operational reasoning</b> — deterministic, rule-based (Intent Engine → Planner → Tool Registry → Response Composer), no LLM call. <b>RAG / Grounded Copilot</b> — OpenAI (<code>text-embedding-3-small</code> embeddings, <code>gpt-4o-mini</code> generation) via <code>OPENAI_API_KEY</code>, actively used for document retrieval and grounded synthesis. <code>AZURE_OPENAI_*</code> remain reserved, unused.</td>
 </tr>
 <tr>
 <td><b>Authentication</b></td>
@@ -223,7 +223,7 @@ PharmaChain-AI-Clinical-Supply-Chain-Copilot/
 │   │   ├── services/             # Business logic / orchestration
 │   │   └── main.py               # App factory, router registration, startup/shutdown
 │   ├── alembic/                  # Database migrations
-│   ├── tests/                    # pytest suite (17 test modules)
+│   ├── tests/                    # pytest suite (33 test modules)
 │   ├── docs/architecture.md      # AI reasoning pipeline documentation
 │   ├── Dockerfile
 │   ├── docker-compose.yml
@@ -413,8 +413,8 @@ npm run dev
 | `BOOTSTRAP_ADMIN_EMAIL` | `admin@pharmachain.com` | Seeded administrator email |
 | `BOOTSTRAP_ADMIN_PASSWORD` | `ChangeMe123!` | Seeded administrator password — change before any shared deployment |
 | `BOOTSTRAP_ADMIN_NAME` | `PharmaChain Administrator` | Seeded administrator display name |
-| `OPENAI_API_KEY` | *(empty)* | Reserved for a future LLM-backed planner — not currently used |
-| `AZURE_OPENAI_ENDPOINT` / `AZURE_OPENAI_API_KEY` | *(empty)* | Reserved for a future LLM-backed planner — not currently used |
+| `OPENAI_API_KEY` | *(empty)* | **Required for RAG** — used for document embeddings (`text-embedding-3-small`) and grounded generation (`gpt-4o-mini`); RAG and document-grounded Copilot requests fail without it |
+| `AZURE_OPENAI_ENDPOINT` / `AZURE_OPENAI_API_KEY` | *(empty)* | Reserved for a future Azure OpenAI provider — not currently used |
 | `CORS_ORIGINS` | `http://localhost:3000,http://localhost:5173` | Comma-separated allowed origins |
 | `ENVIRONMENT` | `development` | Environment label |
 
@@ -449,7 +449,7 @@ Starts PostgreSQL 16 and the FastAPI backend (`backend/Dockerfile`). Run the fro
 
 ## 🧪 Testing
 
-**Backend** — pytest suite in `backend/tests/` (17 modules), covering authentication, RBAC, audit logging, the AI planner/reasoning engine/tool registry/response composer, procurement AI/analysis services, and background job integration.
+**Backend** — pytest suite in `backend/tests/` (33 test modules), covering authentication, RBAC, audit logging, the AI planner/reasoning engine/tool registry/response composer, procurement AI/analysis services, background job integration, the RAG pipeline (parsing, chunking, embeddings, retrieval, grounded generation) and the grounded Copilot integration (evidence contract, evidence-requirement detection, citation resolution, RBAC boundary). Currently **286 passed, 0 failed**.
 
 ```bash
 cd backend
@@ -457,7 +457,7 @@ pip install -r requirements-dev.txt
 pytest
 ```
 
-**Frontend** — no automated test suite is currently configured (`frontend/package.json` has no `test` script). Verification today is `npm exec tsc --noEmit` + `npm run build`.
+**Frontend** — no automated test suite is currently configured (`frontend/package.json` has no `test` script). Verification today is `npm exec tsc --noEmit` + `eslint` + `npm run build`.
 
 ---
 
@@ -481,11 +481,11 @@ pytest
 - [x] Core frontend pages (Dashboard, Inventory, Warehouse, Shipments) migrated from mock data onto live backend endpoints
 - [x] Retrieval-Augmented Generation (RAG) over uploaded PDF documents — ingestion, pgvector similarity search, grounded LLM generation with server-side citation validation (`POST /api/rag/query`)
 - [x] Grounded Executive Copilot — RAG integrated into the Copilot at an explicit evidence boundary (`GroundedCopilotService`) so operational and document evidence stay separated end-to-end — see [Grounded Copilot](#-grounded-copilot-rag--executive-copilot)
+- [x] Grounded Copilot frontend UI — evidence-requirement and grounded-status badges, an operational-evidence checklist, and validated document-source citations rendered per answer on the `/copilot` page, with document-oriented prompts gated behind `rag.query`
 
 **Future**
 
-- [ ] LLM-backed planning strategy (`OPENAI_API_KEY` / `AZURE_OPENAI_*` are already reserved for this)
-- [ ] Frontend UI for grounded Copilot answers (operational vs. document evidence, source citations)
+- [ ] LLM-backed planning strategy for the deterministic operational Copilot (`OPENAI_API_KEY` is already configured and in active use for RAG; a future `LLMPlanner` could reuse it — `AZURE_OPENAI_*` remain unused)
 - [ ] Redis caching layer
 - [ ] CI/CD pipeline (e.g. GitHub Actions)
 - [ ] Automated frontend test suite
@@ -522,7 +522,7 @@ pytest
 
 AI Software Engineer · Product Engineer · NHS Tech Returner
 
-This project demonstrates full-stack engineering and explainable, rule-based AI system design through a realistic pharmaceutical supply chain platform.
+This project demonstrates full-stack engineering and explainable AI system design — deterministic operational reasoning combined with RAG-grounded document retrieval — through a realistic pharmaceutical supply chain platform.
 
 [![GitHub](https://img.shields.io/badge/GitHub-VDhimar09-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/VDhimar09)
 
@@ -536,6 +536,6 @@ This project demonstrates full-stack engineering and explainable, rule-based AI 
 
 Licensed under the **MIT License** — see [`LICENSE.txt`](LICENSE.txt).
 
-<sub>Built with FastAPI, React, PostgreSQL and a deterministic reasoning engine.</sub>
+<sub>Built with FastAPI, React, PostgreSQL, a deterministic reasoning engine and a RAG/grounded LLM pipeline.</sub>
 
 </div>
