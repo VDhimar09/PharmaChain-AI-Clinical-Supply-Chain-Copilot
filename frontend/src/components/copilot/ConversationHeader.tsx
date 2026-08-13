@@ -21,13 +21,18 @@ export function ConversationHeader({ isThinking, lastUpdated }: ConversationHead
               Executive Copilot
             </span>
             <span className="text-white/35">|</span>
-            <span className="text-white/60">{isThinking ? "Deterministic reasoning active" : "Awaiting request"}</span>
+            <span className="text-white/60">
+              {isThinking ? "Deterministic reasoning active" : "Awaiting request"}
+            </span>
           </div>
           <h1 className="mt-4 text-3xl font-bold tracking-tight md:text-4xl">
-            Ask operational questions and inspect the evidence behind every answer.
+            Ask operational questions, document questions, or both - and inspect the evidence behind
+            every answer.
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-white/70 md:text-[15px]">
-            The copilot reuses the existing planner, tool registry, reasoning engine, and AI Insights service to produce explainable executive responses without any LLM dependency.
+            Operational questions run through the existing deterministic planner, tool registry, and
+            reasoning engine - no LLM involved. Questions that need SOPs or policy documents are
+            additionally grounded in retrieved, cited document evidence.
           </p>
         </div>
         <div className="flex flex-col items-start gap-2 sm:items-end">

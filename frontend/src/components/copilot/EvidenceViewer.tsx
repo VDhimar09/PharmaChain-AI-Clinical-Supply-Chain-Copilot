@@ -13,7 +13,9 @@ export function EvidenceViewer({ evidence }: { evidence: CopilotEvidenceBundle }
   return (
     <Card className="border-border/70">
       <CardContent className="p-5">
-        <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Evidence</div>
+        <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          Operational Evidence (raw)
+        </div>
         <div className="mt-4 grid gap-4 xl:grid-cols-2">
           {sections.map((section) => (
             <div key={section} className="rounded-xl border border-border/70 bg-muted/20 p-4">

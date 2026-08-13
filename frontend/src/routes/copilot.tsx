@@ -14,6 +14,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useCopilotChat } from "@/lib/api/hooks";
 import type { CopilotChatResponse } from "@/lib/api/endpoints";
 import { ApiError } from "@/lib/api/types";
+import { useAuth } from "@/lib/auth/auth-context";
 
 export const Route = createFileRoute("/copilot")({
   head: () => ({
@@ -21,7 +22,8 @@ export const Route = createFileRoute("/copilot")({
       { title: "AI Executive Copilot | PharmaChain" },
       {
         name: "description",
-        content: "Deterministic AI executive copilot for operational questions and explainable evidence.",
+        content:
+          "AI Executive Copilot for operational questions, and questions grounded in uploaded SOPs and policy documents with cited evidence.",
       },
     ],
   }),
@@ -32,7 +34,7 @@ type ConversationEntry =
   | { role: "user"; content: string }
   | { role: "assistant"; content: string; result: CopilotChatResponse };
 
-const suggestedPrompts = [
+const operationalPrompts = [
   "What should I prioritise today?",
   "Summarise today's operations.",
   "Show warehouse risks.",
@@ -42,8 +44,21 @@ const suggestedPrompts = [
   "Explain today's AI recommendations.",
 ];
 
+// Requires `rag.query` - the copilot never fetches document evidence on
+// behalf of a user who doesn't hold it, so these are only offered to
+// users who could actually get a grounded answer from them.
+const documentPrompts = [
+  "What does our cold-chain SOP require?",
+  "Why are shipments at risk, and what does our cold-chain SOP require?",
+];
+
 function CopilotPage() {
   const chatMutation = useCopilotChat();
+  const { user } = useAuth();
+  const canQueryDocuments = Boolean(user?.permissions.includes("rag.query"));
+  const suggestedPrompts = canQueryDocuments
+    ? [...operationalPrompts, ...documentPrompts]
+    : operationalPrompts;
   const [message, setMessage] = useState("What should I prioritise today?");
   const [conversation, setConversation] = useState<ConversationEntry[]>([]);
 
@@ -98,6 +113,10 @@ function CopilotPage() {
                 },
                 recommendations: [],
                 response: getErrorMessage(error),
+                evidence_requirement: "OPERATIONAL",
+                grounded: null,
+                document_evidence: [],
+                citations: [],
               },
             },
           ]);
@@ -116,7 +135,11 @@ function CopilotPage() {
       <div className="space-y-6">
         <ConversationHeader
           isThinking={chatMutation.isPending}
-          lastUpdated={latestAssistantResult ? new Date(latestAssistantResult.generated_at).toLocaleString() : undefined}
+          lastUpdated={
+            latestAssistantResult
+              ? new Date(latestAssistantResult.generated_at).toLocaleString()
+              : undefined
+          }
         />
 
         <div className="grid gap-6 xl:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
@@ -158,7 +181,11 @@ function CopilotPage() {
                     />
                   </div>
                   <div className="flex justify-end">
-                    <Button type="submit" disabled={chatMutation.isPending || !message.trim()} className="gap-2">
+                    <Button
+                      type="submit"
+                      disabled={chatMutation.isPending || !message.trim()}
+                      className="gap-2"
+                    >
                       <SendHorizonal className="size-4" />
                       {chatMutation.isPending ? "Analyzing..." : "Send to copilot"}
                     </Button>
@@ -170,14 +197,21 @@ function CopilotPage() {
             {conversation.length === 0 ? (
               <Card className="border-border/70 bg-muted/20">
                 <CardContent className="p-8 text-sm leading-relaxed text-muted-foreground">
-                  Start with a suggested prompt or ask your own question. The Executive Copilot will plan tool usage, collect operational evidence, and return a structured, explainable answer.
+                  Start with a suggested prompt or ask your own question. The Executive Copilot will
+                  plan tool usage, collect operational evidence, and return a structured,
+                  explainable answer - grounding the answer in cited document evidence too, when a
+                  question requires it and you hold document access.
                 </CardContent>
               </Card>
             ) : (
               <div className="space-y-4">
                 {conversation.map((entry, index) =>
                   entry.role === "user" ? (
-                    <ChatMessage key={`${entry.role}-${index}`} role="user" content={entry.content} />
+                    <ChatMessage
+                      key={`${entry.role}-${index}`}
+                      role="user"
+                      content={entry.content}
+                    />
                   ) : (
                     <ChatMessage
                       key={`${entry.role}-${index}`}
@@ -192,7 +226,9 @@ function CopilotPage() {
 
             {chatMutation.isPending ? <ThinkingIndicator /> : null}
 
-            {latestAssistantResult ? <EvidenceViewer evidence={latestAssistantResult.evidence} /> : null}
+            {latestAssistantResult ? (
+              <EvidenceViewer evidence={latestAssistantResult.evidence} />
+            ) : null}
           </div>
         </div>
       </div>

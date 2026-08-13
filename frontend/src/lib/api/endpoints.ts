@@ -20,7 +20,8 @@ export const shipmentsApi = {
   list: () => apiClient.get<Shipment[]>("/api/shipments"),
   get: (id: string) => apiClient.get<Shipment>(`/api/shipments/${id}`),
   create: (payload: Omit<Shipment, "id">) => apiClient.post<Shipment>("/api/shipments", payload),
-  updateStatus: (id: string, status: ShipmentStatus) => apiClient.patch<Shipment>(`/api/shipments/${id}`, { status }),
+  updateStatus: (id: string, status: ShipmentStatus) =>
+    apiClient.patch<Shipment>(`/api/shipments/${id}`, { status }),
 };
 
 export type InventoryItem = {
@@ -376,6 +377,37 @@ export type CopilotEvidenceBundle = {
   ai_insights: Record<string, unknown>;
 };
 
+/**
+ * Phase 3: what evidence a question needed, decided server-side by
+ * `EvidenceRequirementDetector`. Kept separate from `intent`, which
+ * classifies which operational tools to run.
+ */
+export type CopilotEvidenceRequirement = "OPERATIONAL" | "DOCUMENT" | "OPERATIONAL_AND_DOCUMENT";
+
+/**
+ * One retrieved document chunk considered as evidence. Mirrors
+ * `DocumentEvidenceItem` in the backend grounded evidence contract.
+ * `chunk_id`/`content`/`similarity`/`source_id` are only populated when
+ * retrieved directly for combined synthesis, not when reconstructed from
+ * an already-validated citation.
+ */
+export type CopilotDocumentEvidenceItem = {
+  source_id: string | null;
+  document_id: string;
+  chunk_id: string | null;
+  filename: string;
+  page_number: number;
+  content: string | null;
+  similarity: number | null;
+};
+
+/** A server-validated document citation - never a raw, unverified SOURCE_N. */
+export type CopilotCitation = {
+  document_id: string;
+  filename: string;
+  page_number: number;
+};
+
 export type CopilotChatResponse = {
   conversation_id: string;
   generated_at: string;
@@ -387,6 +419,14 @@ export type CopilotChatResponse = {
   evidence: CopilotEvidenceBundle;
   recommendations: string[];
   response: string;
+
+  // Phase 3: grounded Copilot + RAG integration. Always present -
+  // `evidence_requirement` defaults to "OPERATIONAL" and `grounded` is
+  // `null` for the deterministic, non-LLM operational path.
+  evidence_requirement: CopilotEvidenceRequirement;
+  grounded: boolean | null;
+  document_evidence: CopilotDocumentEvidenceItem[];
+  citations: CopilotCitation[];
 };
 
 export const copilotApi = {
@@ -411,17 +451,10 @@ export type TokenResponse = {
 };
 
 export const authApi = {
-  login: (payload: LoginRequest) =>
-    apiClient.post<TokenResponse>("/api/auth/login", payload),
+  login: (payload: LoginRequest) => apiClient.post<TokenResponse>("/api/auth/login", payload),
   refresh: (refreshToken: string) =>
-    apiClient.post<TokenResponse>(
-      "/api/auth/refresh",
-      { refresh_token: refreshToken },
-    ),
+    apiClient.post<TokenResponse>("/api/auth/refresh", { refresh_token: refreshToken }),
   logout: (refreshToken: string) =>
-    apiClient.post<void>(
-      "/api/auth/logout",
-      { refresh_token: refreshToken },
-    ),
+    apiClient.post<void>("/api/auth/logout", { refresh_token: refreshToken }),
   me: () => apiClient.get<CurrentUser>("/api/auth/me"),
 };
