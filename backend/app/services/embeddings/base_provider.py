@@ -19,6 +19,12 @@ class EmbeddingError(Exception):
 class EmbeddingProvider(ABC):
 
     @property
+    def profile(self) -> str:
+        """Storage profile used to keep incompatible vector spaces apart."""
+
+        return "openai"
+
+    @property
     @abstractmethod
     def dimension(self) -> int:
         """The fixed vector width this provider produces."""

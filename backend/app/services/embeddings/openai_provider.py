@@ -41,6 +41,10 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
         self._client = OpenAI(api_key=resolved_api_key)
 
     @property
+    def profile(self) -> str:
+        return "openai"
+
+    @property
     def dimension(self) -> int:
         return self._dimension
 

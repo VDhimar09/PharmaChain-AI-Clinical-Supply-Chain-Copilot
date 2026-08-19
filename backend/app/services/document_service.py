@@ -67,11 +67,9 @@ class DocumentService:
         if self._embedding_provider is None:
             # Imported lazily so environments without an OpenAI key can
             # still import this module (e.g. to inject a fake provider).
-            from app.services.embeddings.openai_provider import (
-                OpenAIEmbeddingProvider,
-            )
+            from app.services.embeddings.factory import get_embedding_provider
 
-            self._embedding_provider = OpenAIEmbeddingProvider()
+            self._embedding_provider = get_embedding_provider()
 
         return self._embedding_provider
 
@@ -179,7 +177,9 @@ class DocumentService:
                     content=chunk.content,
                     page_number=chunk.page_number,
                     chunk_metadata={},
-                    embedding=embedding,
+                    embedding_profile=self.embedding_provider.profile,
+                    embedding=(embedding if self.embedding_provider.profile == "openai" else None),
+                    local_embedding=(embedding if self.embedding_provider.profile == "local" else None),
                 )
                 for chunk, embedding in zip(chunks, embeddings)
             ]

@@ -63,6 +63,7 @@ class DocumentChunkRepository:
         db: Session,
         query_embedding: list[float],
         top_k: int,
+        embedding_profile: str = "openai",
     ) -> list[SimilarChunk]:
         """Return the `top_k` chunks closest to `query_embedding` by
         cosine similarity, restricted to fully ingested documents.
@@ -72,7 +73,12 @@ class DocumentChunkRepository:
         data-access layer.
         """
 
-        distance = DocumentChunk.embedding.cosine_distance(
+        embedding_column = (
+            DocumentChunk.local_embedding
+            if embedding_profile == "local"
+            else DocumentChunk.embedding
+        )
+        distance = embedding_column.cosine_distance(
             query_embedding
         )
 
@@ -81,6 +87,7 @@ class DocumentChunkRepository:
             .join(Document, DocumentChunk.document_id == Document.id)
             .options(selectinload(DocumentChunk.document))
             .filter(Document.status == DocumentStatus.COMPLETED)
+            .filter(DocumentChunk.embedding_profile == embedding_profile)
             .order_by(distance.asc())
             .limit(top_k)
             .all()

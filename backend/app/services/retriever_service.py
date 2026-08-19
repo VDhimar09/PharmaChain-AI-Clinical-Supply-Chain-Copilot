@@ -52,11 +52,9 @@ class RetrieverService:
     @property
     def embedding_provider(self) -> EmbeddingProvider:
         if self._embedding_provider is None:
-            from app.services.embeddings.openai_provider import (
-                OpenAIEmbeddingProvider,
-            )
+            from app.services.embeddings.factory import get_embedding_provider
 
-            self._embedding_provider = OpenAIEmbeddingProvider()
+            self._embedding_provider = get_embedding_provider()
 
         return self._embedding_provider
 
@@ -76,6 +74,7 @@ class RetrieverService:
             self.db,
             query_embedding,
             self.top_k,
+            self.embedding_provider.profile,
         )
 
         # Top-K narrows candidates first; the similarity threshold then

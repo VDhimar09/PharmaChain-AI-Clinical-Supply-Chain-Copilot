@@ -413,7 +413,9 @@ npm run dev
 | `BOOTSTRAP_ADMIN_EMAIL` | `admin@pharmachain.com` | Seeded administrator email |
 | `BOOTSTRAP_ADMIN_PASSWORD` | `ChangeMe123!` | Seeded administrator password — change before any shared deployment |
 | `BOOTSTRAP_ADMIN_NAME` | `PharmaChain Administrator` | Seeded administrator display name |
-| `OPENAI_API_KEY` | *(empty)* | **Required for RAG** — used for document embeddings (`text-embedding-3-small`) and grounded generation (`gpt-4o-mini`); RAG and document-grounded Copilot requests fail without it |
+| `OPENAI_API_KEY` | *(empty)* | Required for OpenAI embeddings and grounded generation (`gpt-4o-mini`). Local embeddings do not require it, but grounded generation still does. |
+| `RAG_EMBEDDING_PROVIDER` | `openai` | Embedding profile: `openai` uses 1536-dimensional OpenAI vectors; `local` uses the CPU-local `sentence-transformers/all-MiniLM-L6-v2` 384-dimensional profile. Profiles are stored and retrieved separately. |
+| `RAG_LOCAL_EMBEDDING_MODEL` | `sentence-transformers/all-MiniLM-L6-v2` | Local model downloaded once by Sentence Transformers to the developer's Hugging Face cache, outside the repository. |
 | `AZURE_OPENAI_ENDPOINT` / `AZURE_OPENAI_API_KEY` | *(empty)* | Reserved for a future Azure OpenAI provider — not currently used |
 | `CORS_ORIGINS` | `http://localhost:3000,http://localhost:5173` | Comma-separated allowed origins |
 | `ENVIRONMENT` | `development` | Environment label |

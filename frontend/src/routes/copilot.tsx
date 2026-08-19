@@ -227,7 +227,10 @@ function CopilotPage() {
             {chatMutation.isPending ? <ThinkingIndicator /> : null}
 
             {latestAssistantResult ? (
-              <EvidenceViewer evidence={latestAssistantResult.evidence} />
+              <EvidenceViewer
+                evidence={latestAssistantResult.evidence}
+                toolExecution={latestAssistantResult.tool_execution}
+              />
             ) : null}
           </div>
         </div>

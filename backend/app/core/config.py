@@ -49,6 +49,8 @@ class Settings(BaseSettings):
     RAG_EMBEDDING_PROVIDER: str = "openai"
     RAG_EMBEDDING_MODEL: str = "text-embedding-3-small"
     RAG_EMBEDDING_DIMENSION: int = 1536
+    RAG_LOCAL_EMBEDDING_MODEL: str = "sentence-transformers/all-MiniLM-L6-v2"
+    RAG_LOCAL_EMBEDDING_DIMENSION: int = 384
 
     RAG_SEARCH_TOP_K: int = 5
     RAG_SIMILARITY_THRESHOLD: float = 0.5

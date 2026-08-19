@@ -55,7 +55,13 @@ def test_fake_provider_raises_embedding_error_when_configured_to_fail():
         provider.embed_text("boom")
 
 
-def test_openai_provider_requires_api_key():
+def test_openai_provider_requires_api_key(monkeypatch):
+    monkeypatch.setattr(
+        "app.core.config.settings.OPENAI_API_KEY",
+        None,
+        raising=False,
+    )
+
     with pytest.raises(EmbeddingError):
         OpenAIEmbeddingProvider(api_key="")
 
