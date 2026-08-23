@@ -39,7 +39,11 @@ export class ApiClient {
     return url.toString();
   }
 
-  private buildHeaders(customHeaders?: HeadersInit, skipAuthHeader = false): Headers {
+  private buildHeaders(
+    customHeaders?: HeadersInit,
+    skipAuthHeader = false,
+    hasFormData = false,
+  ): Headers {
     const headers = new Headers(customHeaders);
     const session = getStoredAuthSession();
 
@@ -47,7 +51,7 @@ export class ApiClient {
       headers.set("Accept", "application/json");
     }
 
-    if (!headers.has("Content-Type")) {
+    if (!hasFormData && !headers.has("Content-Type")) {
       headers.set("Content-Type", "application/json");
     }
 
@@ -93,9 +97,9 @@ export class ApiClient {
     const init: RequestInit = {
       ...fetchOptions,
       method: fetchOptions.method ?? "GET",
-      headers: this.buildHeaders(headers, skipAuthHeader),
+      headers: this.buildHeaders(headers, skipAuthHeader, data instanceof FormData),
       credentials: fetchOptions.credentials ?? "same-origin",
-      body: data !== undefined ? JSON.stringify(data) : undefined,
+      body: data instanceof FormData ? data : data !== undefined ? JSON.stringify(data) : undefined,
     };
 
     try {

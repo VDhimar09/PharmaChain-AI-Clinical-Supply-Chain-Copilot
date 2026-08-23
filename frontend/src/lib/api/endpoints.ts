@@ -219,6 +219,38 @@ export const warehouseZonesApi = {
   capacitySummary: () => apiClient.get<WarehouseCapacitySummary>("/api/warehouse-zones/capacity"),
 };
 
+export type DocumentRecord = {
+  id: string;
+  filename: string;
+  original_filename: string;
+  mime_type: string;
+  file_size: number;
+  checksum: string;
+  status: string;
+  failure_reason: string | null;
+  page_count: number | null;
+  uploaded_by: string | null;
+  uploaded_at: string;
+  updated_at: string;
+};
+
+export type DocumentDeleteResponse = {
+  message: string;
+};
+
+export const documentsApi = {
+  list: () => apiClient.get<DocumentRecord[]>("/api/documents/"),
+  upload: (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return apiClient.request<DocumentRecord>("/api/documents/upload", {
+      method: "POST",
+      data: formData,
+    });
+  },
+  delete: (id: string) => apiClient.delete<DocumentDeleteResponse>(`/api/documents/${id}`),
+};
+
 /**
  * Dashboard operational KPIs from backend.
  * Maps to DashboardSummaryResponse in backend.

@@ -24,6 +24,9 @@ import {
   warehouseZonesApi,
   WarehouseZone,
   WarehouseCapacitySummary,
+  documentsApi,
+  DocumentRecord,
+  DocumentDeleteResponse,
 } from "./endpoints";
 
 export function useShipments(options?: UseQueryOptions<Shipment[], Error>) {
@@ -160,6 +163,32 @@ export function useCopilotChat(
 ) {
   return useMutation<CopilotChatResponse, Error, CopilotChatRequest>({
     mutationFn: copilotApi.chat,
+    ...options,
+  });
+}
+
+export function useDocuments(options?: UseQueryOptions<DocumentRecord[], Error>) {
+  return useQuery<DocumentRecord[], Error>({
+    queryKey: ["documents"],
+    queryFn: documentsApi.list,
+    ...options,
+  });
+}
+
+export function useUploadDocument(
+  options?: UseMutationOptions<DocumentRecord, Error, File>,
+) {
+  return useMutation<DocumentRecord, Error, File>({
+    mutationFn: documentsApi.upload,
+    ...options,
+  });
+}
+
+export function useDeleteDocument(
+  options?: UseMutationOptions<DocumentDeleteResponse, Error, string>,
+) {
+  return useMutation<DocumentDeleteResponse, Error, string>({
+    mutationFn: documentsApi.delete,
     ...options,
   });
 }

@@ -14,6 +14,7 @@ import { Route as ShipmentsRouteImport } from './routes/shipments'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as InventoryRouteImport } from './routes/inventory'
 import { Route as InsightsRouteImport } from './routes/insights'
+import { Route as DocumentsRouteImport } from './routes/documents'
 import { Route as CopilotRouteImport } from './routes/copilot'
 import { Route as AssistantRouteImport } from './routes/assistant'
 import { Route as IndexRouteImport } from './routes/index'
@@ -43,6 +44,11 @@ const InsightsRoute = InsightsRouteImport.update({
   path: '/insights',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DocumentsRoute = DocumentsRouteImport.update({
+  id: '/documents',
+  path: '/documents',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CopilotRoute = CopilotRouteImport.update({
   id: '/copilot',
   path: '/copilot',
@@ -63,6 +69,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/assistant': typeof AssistantRoute
   '/copilot': typeof CopilotRoute
+  '/documents': typeof DocumentsRoute
   '/insights': typeof InsightsRoute
   '/inventory': typeof InventoryRoute
   '/login': typeof LoginRoute
@@ -73,6 +80,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/assistant': typeof AssistantRoute
   '/copilot': typeof CopilotRoute
+  '/documents': typeof DocumentsRoute
   '/insights': typeof InsightsRoute
   '/inventory': typeof InventoryRoute
   '/login': typeof LoginRoute
@@ -84,6 +92,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/assistant': typeof AssistantRoute
   '/copilot': typeof CopilotRoute
+  '/documents': typeof DocumentsRoute
   '/insights': typeof InsightsRoute
   '/inventory': typeof InventoryRoute
   '/login': typeof LoginRoute
@@ -96,6 +105,7 @@ export interface FileRouteTypes {
     | '/'
     | '/assistant'
     | '/copilot'
+    | '/documents'
     | '/insights'
     | '/inventory'
     | '/login'
@@ -106,6 +116,7 @@ export interface FileRouteTypes {
     | '/'
     | '/assistant'
     | '/copilot'
+    | '/documents'
     | '/insights'
     | '/inventory'
     | '/login'
@@ -116,6 +127,7 @@ export interface FileRouteTypes {
     | '/'
     | '/assistant'
     | '/copilot'
+    | '/documents'
     | '/insights'
     | '/inventory'
     | '/login'
@@ -127,6 +139,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AssistantRoute: typeof AssistantRoute
   CopilotRoute: typeof CopilotRoute
+  DocumentsRoute: typeof DocumentsRoute
   InsightsRoute: typeof InsightsRoute
   InventoryRoute: typeof InventoryRoute
   LoginRoute: typeof LoginRoute
@@ -171,6 +184,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InsightsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/documents': {
+      id: '/documents'
+      path: '/documents'
+      fullPath: '/documents'
+      preLoaderRoute: typeof DocumentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/copilot': {
       id: '/copilot'
       path: '/copilot'
@@ -199,6 +219,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AssistantRoute: AssistantRoute,
   CopilotRoute: CopilotRoute,
+  DocumentsRoute: DocumentsRoute,
   InsightsRoute: InsightsRoute,
   InventoryRoute: InventoryRoute,
   LoginRoute: LoginRoute,

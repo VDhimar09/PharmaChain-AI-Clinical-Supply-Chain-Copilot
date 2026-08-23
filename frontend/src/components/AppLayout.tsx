@@ -1,5 +1,5 @@
 import { Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Package, Warehouse, Truck, Sparkles, Bell, Search, Pill, BrainCircuit, MessagesSquare, LogOut } from "lucide-react";
+import { LayoutDashboard, Package, Warehouse, Truck, Sparkles, Bell, Search, Pill, BrainCircuit, MessagesSquare, FileText, LogOut } from "lucide-react";
 import { useEffect, type ReactNode } from "react";
 import { useAuth } from "@/lib/auth/auth-context";
 
@@ -11,6 +11,7 @@ const nav = [
   { to: "/assistant", label: "AI Procurement", icon: Sparkles },
   { to: "/insights", label: "AI Insights", icon: BrainCircuit },
   { to: "/copilot", label: "Executive Copilot", icon: MessagesSquare },
+  { to: "/documents", label: "Documents", icon: FileText },
 ] as const;
 
 
