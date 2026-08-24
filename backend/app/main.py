@@ -9,6 +9,7 @@ from app.core.database import SessionLocal
 from app.core.config import settings
 from app.dependencies.auth import get_current_user
 from app.jobs.scheduler import get_scheduler_service
+from app.observability.telemetry import configure_telemetry
 
 from app.models.base import Base
 from app.models.audit_log import AuditLog
@@ -65,6 +66,7 @@ app = FastAPI(
     title="PharmaChain API",
     version="0.1.0"
 )
+configure_telemetry(app, engine)
 
 
 @app.on_event("startup")
