@@ -20,6 +20,13 @@ python-multipart==0.0.20
 
 APScheduler==3.11.3
 
+# OpenTelemetry foundation
+opentelemetry-api==1.39.1
+opentelemetry-sdk==1.39.1
+opentelemetry-instrumentation-fastapi==0.60b1
+opentelemetry-instrumentation-sqlalchemy==0.60b1
+opentelemetry-exporter-otlp-proto-grpc==1.39.1
+
 # RAG
 pypdf==5.1.0
 openai==1.109.1
