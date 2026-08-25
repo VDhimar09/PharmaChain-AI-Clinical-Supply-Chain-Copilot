@@ -35,6 +35,7 @@
 - [✨ Features](#-features)
 - [🏗️ Architecture](#-architecture)
 - [🛠️ Technology Stack](#-technology-stack)
+- [Observability](#observability)
 - [📂 Folder Structure](#-folder-structure)
 - [🔌 API Reference](#-api-reference)
 
@@ -196,6 +197,83 @@ The response schema (`CopilotChatResponse`) is backward compatible — `evidence
 <td>Docker (backend), Dockerfile configured for Render; frontend built via Vite/Nitro</td>
 </tr>
 </table>
+
+---
+
+## Observability
+
+PharmaChain includes an initial production-style observability foundation built on OpenTelemetry. It provides vendor-neutral backend telemetry while keeping the application able to start without an external telemetry service.
+
+### Current observability architecture
+
+```text
+                    React / TanStack Start
+                              |
+                              v
+                       FastAPI Backend
+                              |
+                +-------------+-------------+
+                |                           |
+             Business                   OpenTelemetry
+             Services                    Instrumentation
+                |                           |
+        +-------+--------+          +-------+--------+
+        |       |        |          |       |        |
+       AI      RAG   Scheduler   FastAPI   HTTP   SQLAlchemy
+        |       |        |
+        +-------+--------+
+                |
+                v
+           PostgreSQL
+```
+
+### OpenTelemetry
+
+OpenTelemetry supplies standardized instrumentation and telemetry for the backend. The current foundation instruments HTTP/FastAPI requests and SQLAlchemy database operations, and attaches service name, version, deployment environment, request status, and duration metadata. Export is optional through OTLP/gRPC, so the design remains vendor-neutral.
+
+Instrumentation is configured idempotently to avoid duplicate setup. When `OTEL_EXPORTER_OTLP_ENDPOINT` is not configured, the backend still starts without an OpenTelemetry Collector or another external telemetry service.
+
+### Privacy-aware telemetry
+
+Telemetry is deliberately limited to low-cardinality operational metadata rather than user-specific or application-content data. Request targets and query strings are removed from HTTP span data; request and response header capture is disabled; and SQLAlchemy telemetry does not capture SQL parameters.
+
+Telemetry does not intentionally capture JWTs, refresh tokens, passwords, Authorization headers, API keys, OpenAI or Azure OpenAI credentials, request bodies, response bodies, user prompts, generated AI responses, RAG document contents, RAG chunks, embeddings, or SQL parameters. This is a privacy-aware engineering choice, not a claim of clinical-data compliance or regulatory certification.
+
+### Configuration
+
+| Variable | Description |
+|---|---|
+| `OTEL_SERVICE_NAME` | Identifies the backend service (defaults to `pharmachain-api`). |
+| `OTEL_SERVICE_VERSION` | Identifies the application version (defaults to `0.1.0`). |
+| `OTEL_ENVIRONMENT` | Identifies the deployment environment (defaults to `development`). |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | Optional OTLP/gRPC endpoint for exporting telemetry. |
+
+Local development uses the existing backend startup instructions above; this OpenTelemetry foundation does not require Prometheus, Grafana, an OpenTelemetry Collector, or a paid observability service for the application to start.
+
+### Current status
+
+| Capability | Status |
+|---|---|
+| OpenTelemetry SDK | Implemented |
+| FastAPI instrumentation | Implemented |
+| SQLAlchemy instrumentation | Implemented |
+| Safe HTTP telemetry | Implemented |
+| Optional OTLP export | Implemented |
+| Prometheus metrics | Planned |
+| Grafana dashboards | Planned |
+| AI/RAG metrics | Planned |
+| Background-job metrics | Planned |
+
+This foundation is the first step toward production-style operational visibility. Future phases can add visibility into API reliability and latency, AI and RAG performance, background-job health, and database performance; those application-level metrics and dashboards are not all implemented today.
+
+### Observability roadmap
+
+1. OpenTelemetry foundation — completed
+2. Application-level Prometheus metrics — next
+3. AI/RAG/background-job metrics
+4. Prometheus local monitoring
+5. Grafana dashboards
+6. Docker Compose observability stack
 
 ---
 
