@@ -49,6 +49,9 @@ from app.api.rag import router as rag_router
 from app.services.bootstrap_service import BootstrapService
 from app.services.seed_data_service import SeedDataService
 
+from app.observability.metrics import metrics_middleware
+from fastapi.responses import Response
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 logger = logging.getLogger(__name__)
 
@@ -157,3 +160,12 @@ def health():
     return {
         "status": "healthy"
     }
+
+app.middleware("http")(metrics_middleware)
+
+@app.get("/metrics", include_in_schema=False)
+def metrics():
+    return Response(
+        content=generate_latest(),
+        media_type=CONTENT_TYPE_LATEST,
+    )
