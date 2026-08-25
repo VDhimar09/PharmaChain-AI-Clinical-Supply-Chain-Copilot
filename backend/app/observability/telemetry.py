@@ -1,6 +1,7 @@
 import os
 
 from opentelemetry import trace
+from opentelemetry.trace import ProxyTracerProvider
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
@@ -48,7 +49,8 @@ def configure_telemetry(app, engine) -> None:
             BatchSpanProcessor(exporter)
         )
 
-    trace.set_tracer_provider(tracer_provider)
+    if isinstance(trace.get_tracer_provider(), ProxyTracerProvider):
+        trace.set_tracer_provider(tracer_provider)
 
     FastAPIInstrumentor.instrument_app(
         app,
