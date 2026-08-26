@@ -1,6 +1,5 @@
 # @format
 
-version: "3.9"
 
 services:
   db:
@@ -26,6 +25,8 @@ services:
     build:
       context: ./backend
 
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+
     container_name: pharmachain-api
 
     depends_on:
@@ -37,5 +38,22 @@ services:
     environment:
       DATABASE_URL: postgresql://pharmachain:pharmachain@db:5432/pharmachain
 
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    container_name: pharmachain-prometheus
+
+    restart: unless-stopped
+
+    depends_on:
+      - api
+
+    ports:
+      - "9090:9090"
+
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+
 volumes:
   postgres_data:
+  prometheus_data:
