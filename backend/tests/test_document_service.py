@@ -14,6 +14,7 @@ from app.services.document_service import (
     DocumentService,
     DocumentValidationError,
 )
+from app.services.storage.local import LocalDocumentStorage
 from tests.fakes import FakeEmbeddingProvider
 from tests.fakes import build_minimal_pdf
 
@@ -40,7 +41,7 @@ def service(db, tmp_path):
             chunk_overlap=20,
             min_chunk_size=10,
         ),
-        storage_dir=str(tmp_path),
+        storage=LocalDocumentStorage(tmp_path),
     )
 
 
