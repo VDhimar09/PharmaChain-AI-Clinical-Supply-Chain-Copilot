@@ -28,6 +28,9 @@ from app.services.embeddings.base_provider import EmbeddingError
 from app.services.embeddings.base_provider import EmbeddingProvider
 from app.services.parsing.base_parser import DocumentParser
 from app.services.parsing.base_parser import DocumentParsingError
+from app.services.storage.base import DocumentStorage
+from app.services.storage.base import StorageNotFoundError
+from app.services.storage.local import LocalDocumentStorage
 
 
 logger = get_logger("document_service")
@@ -54,13 +57,13 @@ class DocumentService:
         parser: DocumentParser | None = None,
         chunking_service: ChunkingService | None = None,
         storage_dir: str | None = None,
+        storage: DocumentStorage | None = None,
     ):
         self.db = db
         self._embedding_provider = embedding_provider
         self._parser = parser
         self.chunking_service = chunking_service or ChunkingService()
-        self.storage_dir = Path(storage_dir or settings.RAG_STORAGE_DIR)
-        self.storage_dir.mkdir(parents=True, exist_ok=True)
+        self.storage = storage or LocalDocumentStorage(storage_dir)
 
     @property
     def embedding_provider(self) -> EmbeddingProvider:
@@ -98,11 +101,9 @@ class DocumentService:
 
         checksum = hashlib.sha256(file_bytes).hexdigest()
 
-        # The stored filename is always server-generated - never derived
-        # from user input - to rule out path traversal or unsafe storage.
-        stored_filename = f"{uuid.uuid4()}.pdf"
-        file_path = self.storage_dir / stored_filename
-        file_path.write_bytes(file_bytes)
+        # The storage adapter generates an opaque key; it never uses the
+        # original filename as a filesystem path.
+        stored_filename = self.storage.store(file_bytes)
 
         document = Document(
             filename=stored_filename,
@@ -115,7 +116,8 @@ class DocumentService:
         )
         document = DocumentRepository.create(self.db, document)
 
-        self._ingest(document, file_path)
+        with self.storage.materialize(document.filename) as file_path:
+            self._ingest(document, file_path)
 
         return document
 
@@ -130,14 +132,16 @@ class DocumentService:
                 f"Document '{document_id}' was not found."
             )
 
-        file_path = self.storage_dir / document.filename
-
         # Chunks are removed via the model's cascade relationship / the
         # FK's ON DELETE CASCADE.
         DocumentRepository.delete(self.db, document)
 
-        if file_path.exists():
-            file_path.unlink(missing_ok=True)
+        try:
+            self.storage.delete(document.filename)
+        except StorageNotFoundError:
+            # Preserve the previous idempotent local-file behaviour: a
+            # missing file does not prevent removal of its metadata row.
+            pass
 
     # ------------------------------------------------------------------
     # Internals
