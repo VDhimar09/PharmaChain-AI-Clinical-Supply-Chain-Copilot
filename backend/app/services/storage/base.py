@@ -24,8 +24,8 @@ class DocumentStorage(ABC):
     """Storage operations required by :class:`DocumentService` only."""
 
     @abstractmethod
-    def store(self, file_bytes: bytes) -> str:
-        """Persist bytes and return a server-controlled storage key."""
+    def store(self, file_bytes: bytes, storage_key: str, content_type: str) -> str:
+        """Persist bytes at a server-controlled key and return that key."""
 
     @abstractmethod
     def materialize(
@@ -39,5 +39,10 @@ class DocumentStorage(ABC):
         """Delete a stored document."""
 
     @abstractmethod
-    def generate_download_url(self, storage_key: str) -> str | None:
-        """Return a download URL when the storage backend supports one."""
+    def create_download_url(
+        self,
+        storage_key: str,
+        original_filename: str,
+        expiry_seconds: int,
+    ) -> str | None:
+        """Return a time-limited download URL when the backend supports it."""

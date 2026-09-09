@@ -33,6 +33,8 @@ def provider():
 def _make_document(status: str) -> Document:
     return Document(
         filename=f"{uuid.uuid4()}.pdf",
+        storage_backend="local",
+        storage_key=f"{uuid.uuid4()}.pdf",
         original_filename="Cold_Chain_SOP.pdf",
         mime_type="application/pdf",
         file_size=1024,

@@ -8,6 +8,7 @@ from fastapi import HTTPException
 from fastapi import Request
 from fastapi import UploadFile
 from fastapi import status
+from fastapi.responses import FileResponse
 
 from sqlalchemy.orm import Session
 
@@ -17,6 +18,7 @@ from app.models.user import User
 
 from app.schemas.document import (
     DocumentDeleteResponse,
+    DocumentDownloadResponse,
     DocumentResponse,
 )
 
@@ -26,6 +28,7 @@ from app.services.document_service import (
     DocumentService,
     DocumentValidationError,
 )
+from app.services.storage.base import StorageNotFoundError
 
 
 router = APIRouter(
@@ -91,6 +94,38 @@ def list_documents(
     ),
 ):
     return DocumentService(db).get_documents()
+
+
+@router.get("/{document_id}/download")
+def download_document(
+    document_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission("documents.read")),
+):
+    """Return a short-lived S3 URL, or stream the private local file."""
+    del current_user
+    service = DocumentService(db)
+    try:
+        document = service.get_document(document_id)
+        download_url = service.create_download_url(document)
+    except DocumentNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+
+    if download_url is not None:
+        return DocumentDownloadResponse(download_url=download_url)
+
+    try:
+        with service.materialize_document(document) as file_path:
+            # A local file has no safe browser-reachable URL. FileResponse is
+            # constructed while the context is open; local materialization is
+            # the stable original path and therefore remains available.
+            return FileResponse(
+                path=file_path,
+                media_type=document.mime_type,
+                filename=document.original_filename,
+            )
+    except StorageNotFoundError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Stored document was not found.")
 
 
 @router.delete(

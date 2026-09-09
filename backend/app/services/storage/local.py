@@ -9,6 +9,7 @@ from pathlib import Path
 from pathlib import PurePosixPath
 from pathlib import PureWindowsPath
 from tempfile import NamedTemporaryFile
+from typing import Iterator
 
 from app.core.config import settings
 from app.services.storage.base import DocumentStorage
@@ -29,9 +30,10 @@ class LocalDocumentStorage(DocumentStorage):
                 "Unable to initialise local document storage."
             ) from exc
 
-    def store(self, file_bytes: bytes) -> str:
-        """Store bytes under an opaque UUID filename, never user input."""
-        storage_key = f"{uuid.uuid4()}.pdf"
+    def store(self, file_bytes: bytes, storage_key: str, content_type: str) -> str:
+        """Store bytes under a caller-supplied opaque key, never user input."""
+        del content_type
+        self._validate_storage_key(storage_key)
         target_path = self._path_for_key(storage_key)
         temporary_path: Path | None = None
 
@@ -78,8 +80,14 @@ class LocalDocumentStorage(DocumentStorage):
                 "Unable to delete stored document."
             ) from exc
 
-    def generate_download_url(self, storage_key: str) -> str | None:
+    def create_download_url(
+        self,
+        storage_key: str,
+        original_filename: str,
+        expiry_seconds: int,
+    ) -> str | None:
         """Local storage has no externally accessible download URL."""
+        del original_filename, expiry_seconds
         self._path_for_key(storage_key)
         return None
 
@@ -111,7 +119,17 @@ class LocalDocumentStorage(DocumentStorage):
         ):
             raise StorageOperationError("Invalid storage key.")
 
+        stem = storage_key.removesuffix(".pdf")
         try:
-            uuid.UUID(storage_key.removesuffix(".pdf"))
+            uuid.UUID(stem)
         except ValueError as exc:
-            raise StorageOperationError("Invalid storage key.") from exc
+            # DocumentService uses this fully opaque, namespace-friendly
+            # shape for every provider so storage metadata is portable.
+            parts = stem.split("-")
+            if len(parts) != 10:
+                raise StorageOperationError("Invalid storage key.") from exc
+            try:
+                uuid.UUID("-".join(parts[:5]))
+                uuid.UUID("-".join(parts[5:]))
+            except ValueError as nested_exc:
+                raise StorageOperationError("Invalid storage key.") from nested_exc

@@ -10,17 +10,19 @@ from app.services.storage.local import LocalDocumentStorage
 def test_store_writes_bytes_under_an_opaque_server_controlled_key(tmp_path):
     storage = LocalDocumentStorage(tmp_path)
 
-    storage_key = storage.store(b"document bytes")
+    storage_key = f"{uuid.uuid4()}-{uuid.uuid4()}.pdf"
+    storage.store(b"document bytes", storage_key, "application/pdf")
 
     assert storage_key.endswith(".pdf")
     assert storage_key != "original-document.pdf"
-    assert uuid.UUID(storage_key.removesuffix(".pdf"))
+    assert storage_key.count("-") == 9
     assert (tmp_path / storage_key).read_bytes() == b"document bytes"
 
 
 def test_materialize_yields_the_stored_local_path(tmp_path):
     storage = LocalDocumentStorage(tmp_path)
-    storage_key = storage.store(b"document bytes")
+    storage_key = f"{uuid.uuid4()}-{uuid.uuid4()}.pdf"
+    storage.store(b"document bytes", storage_key, "application/pdf")
 
     with storage.materialize(storage_key) as path:
         assert path == (tmp_path / storage_key).resolve()
@@ -29,7 +31,8 @@ def test_materialize_yields_the_stored_local_path(tmp_path):
 
 def test_delete_removes_stored_document(tmp_path):
     storage = LocalDocumentStorage(tmp_path)
-    storage_key = storage.store(b"document bytes")
+    storage_key = f"{uuid.uuid4()}-{uuid.uuid4()}.pdf"
+    storage.store(b"document bytes", storage_key, "application/pdf")
 
     storage.delete(storage_key)
 

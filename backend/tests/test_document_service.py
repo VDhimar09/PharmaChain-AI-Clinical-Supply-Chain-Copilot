@@ -1,4 +1,5 @@
 import uuid
+from unittest.mock import Mock
 
 import pytest
 
@@ -73,6 +74,19 @@ def test_rejects_empty_file(service):
             mime_type="application/pdf",
             uploaded_by=None,
         )
+
+
+def test_uses_configured_document_storage_provider(db, monkeypatch):
+    expected_storage = Mock()
+    monkeypatch.setattr(
+        "app.services.document_service.get_document_storage",
+        lambda: expected_storage,
+    )
+
+    service = DocumentService(db)
+
+    assert service.storage is expected_storage
+    assert service.storage_backend == "s3"
 
 
 def test_rejects_oversized_file(service, monkeypatch):

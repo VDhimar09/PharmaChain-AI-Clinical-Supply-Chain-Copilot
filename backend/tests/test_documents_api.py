@@ -142,3 +142,23 @@ def test_delete_returns_404_when_document_missing(client_factory, monkeypatch):
     )
 
     assert response.status_code == 404
+
+
+def test_download_returns_presigned_url_and_requires_documents_read(client_factory, monkeypatch):
+    monkeypatch.setattr(
+        "app.services.document_service.DocumentService.get_document",
+        lambda self, document_id: FAKE_DOCUMENT,
+    )
+    monkeypatch.setattr(
+        "app.services.document_service.DocumentService.create_download_url",
+        lambda self, document: "https://s3.example.test/private/signed",
+    )
+
+    allowed = client_factory(["documents.read"]).get(
+        f"/api/documents/{DOCUMENT_ID}/download"
+    )
+    denied = client_factory([]).get(f"/api/documents/{DOCUMENT_ID}/download")
+
+    assert allowed.status_code == 200
+    assert allowed.json() == {"download_url": "https://s3.example.test/private/signed"}
+    assert denied.status_code == 403
