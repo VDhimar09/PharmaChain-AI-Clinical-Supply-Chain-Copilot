@@ -45,6 +45,18 @@ class Document(Base):
         nullable=False
     )
 
+    storage_backend: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="local",
+        server_default="local",
+    )
+
+    storage_key: Mapped[str] = mapped_column(
+        String(512),
+        nullable=False,
+    )
+
     original_filename: Mapped[str] = mapped_column(
         String(255),
         nullable=False

@@ -1,3 +1,4 @@
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -37,6 +38,14 @@ class Settings(BaseSettings):
     # RAG / Document Ingestion
     # ==========================================
     RAG_STORAGE_DIR: str = "storage/documents"
+
+    # Document object storage. Local remains the zero-configuration default.
+    DOCUMENT_STORAGE_PROVIDER: str = "local"
+    DOCUMENT_S3_BUCKET: str | None = None
+    DOCUMENT_S3_REGION: str | None = None
+    DOCUMENT_S3_PREFIX: str = "documents"
+    DOCUMENT_S3_PRESIGNED_URL_EXPIRES_SECONDS: int = Field(default=300, gt=0)
+    DOCUMENT_S3_ENDPOINT_URL: str | None = None
 
     RAG_MAX_UPLOAD_SIZE_BYTES: int = 25 * 1024 * 1024  # 25 MB
     RAG_ALLOWED_MIME_TYPES: str = "application/pdf"

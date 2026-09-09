@@ -25,3 +25,7 @@ class DocumentResponse(BaseModel):
 
 class DocumentDeleteResponse(BaseModel):
     message: str
+
+
+class DocumentDownloadResponse(BaseModel):
+    download_url: str
