@@ -3,6 +3,7 @@ from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
+from botocore.exceptions import BotoCoreError
 from botocore.exceptions import ClientError
 
 from app.services.storage.base import StorageNotFoundError
@@ -108,6 +109,78 @@ def test_s3_presigned_url_errors_are_wrapped():
 
     with pytest.raises(StorageOperationError, match="download URL"):
         _storage(client).create_download_url(_storage_key(), "Cold Chain.pdf", 300)
+
+
+def test_s3_store_botocore_errors_are_wrapped():
+    client = Mock()
+    client.put_object.side_effect = BotoCoreError(error_msg="connection failed")
+
+    with pytest.raises(StorageOperationError, match="store document"):
+        _storage(client).store(b"pdf", _storage_key(), "application/pdf")
+
+
+def test_s3_materialize_botocore_errors_are_wrapped():
+    client = Mock()
+    client.download_file.side_effect = BotoCoreError(error_msg="connection failed")
+
+    with pytest.raises(StorageOperationError, match="materialize document"):
+        with _storage(client).materialize(_storage_key()):
+            pass
+
+
+def test_s3_delete_botocore_errors_are_wrapped():
+    client = Mock()
+    client.delete_object.side_effect = BotoCoreError(error_msg="connection failed")
+
+    with pytest.raises(StorageOperationError, match="delete document"):
+        _storage(client).delete(_storage_key())
+
+
+def test_s3_presigned_url_botocore_errors_are_wrapped():
+    client = Mock()
+    client.generate_presigned_url.side_effect = BotoCoreError(error_msg="connection failed")
+
+    with pytest.raises(StorageOperationError, match="download URL"):
+        _storage(client).create_download_url(_storage_key(), "Cold Chain.pdf", 300)
+
+
+def test_s3_client_receives_region_and_endpoint_url(monkeypatch):
+    client = Mock()
+    boto3_client = Mock(return_value=client)
+    monkeypatch.setattr("app.services.storage.s3.boto3.client", boto3_client)
+
+    storage = S3DocumentStorage(
+        bucket="private-documents",
+        region="eu-west-2",
+        prefix="documents",
+        endpoint_url="https://s3.example.test",
+    )
+
+    assert storage.client is client
+    boto3_client.assert_called_once_with(
+        "s3",
+        region_name="eu-west-2",
+        endpoint_url="https://s3.example.test",
+    )
+
+
+def test_s3_rejects_empty_prefix():
+    with pytest.raises(StorageOperationError, match="DOCUMENT_S3_PREFIX"):
+        S3DocumentStorage(bucket="private-documents", prefix="", client=Mock())
+
+
+def test_s3_sanitizes_presigned_filename():
+    client = Mock()
+    client.generate_presigned_url.return_value = "https://example.test/signed"
+
+    _storage(client).create_download_url(
+        _storage_key(), 'Cold "Chain"\r\nSOP.pdf', 300
+    )
+
+    disposition = client.generate_presigned_url.call_args.kwargs["Params"][
+        "ResponseContentDisposition"
+    ]
+    assert disposition == 'attachment; filename="Cold ChainSOP.pdf"'
 
 
 def test_s3_requires_bucket_and_factory_keeps_local_default(monkeypatch):
