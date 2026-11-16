@@ -1,5 +1,8 @@
 from types import SimpleNamespace
 
+import pytest
+
+from app.services.procurement_ai_service import ProcurementEvaluationError
 from app.services.procurement_analysis_service import (
     ProcurementAnalysisService,
 )
@@ -66,6 +69,59 @@ class StubProcurementAIService:
         }
 
 
+class FailFastReasoningEngine:
+    def __init__(self, planner, registry) -> None:
+        pass
+
+    def execute(self, message: str, **context):
+        raise AssertionError("Reasoning should not run for an invalid request.")
+
+
+class FailFastResponseComposer:
+    def compose(self, result):
+        raise AssertionError("Response composition should not run.")
+
+
+class FailFastProcurementAIService:
+    def __init__(self, db) -> None:
+        pass
+
+    def get_evaluation_context(
+        self,
+        product_name: str,
+        pallet_quantity: int,
+        month: str,
+    ):
+        raise AssertionError("Procurement evaluation should not run.")
+
+
+def _fail_if_called(*args, **kwargs):
+    raise AssertionError("Downstream lookup should not run.")
+
+
+def _install_fail_fast_stubs(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "app.services.procurement_analysis_service.ProductService.get_product_by_id",
+        _fail_if_called,
+    )
+    monkeypatch.setattr(
+        "app.services.procurement_analysis_service.SupplierService.get_supplier_by_id",
+        _fail_if_called,
+    )
+    monkeypatch.setattr(
+        "app.services.procurement_analysis_service.ProcurementAIService",
+        FailFastProcurementAIService,
+    )
+    monkeypatch.setattr(
+        "app.services.procurement_analysis_service.ResponseComposer",
+        FailFastResponseComposer,
+    )
+    monkeypatch.setattr(
+        "app.services.procurement_analysis_service.ReasoningEngine",
+        FailFastReasoningEngine,
+    )
+
+
 def test_procurement_analysis_service_returns_structured_analysis(
     monkeypatch,
 ) -> None:
@@ -124,3 +180,71 @@ def test_procurement_analysis_service_returns_structured_analysis(
     assert result["recommendation"] == "Approve procurement request."
     assert result["summary"] == "All procurement validation checks passed."
     assert result["explanation"] == "Recommendation: APPROVE"
+
+
+@pytest.mark.parametrize("requested_quantity", [0, -1])
+def test_procurement_analysis_service_rejects_non_positive_quantity(
+    monkeypatch,
+    requested_quantity: int,
+) -> None:
+    _install_fail_fast_stubs(monkeypatch)
+    service = ProcurementAnalysisService(db=object())
+
+    with pytest.raises(ProcurementEvaluationError) as error:
+        service.analyze(
+            product_id="product-1",
+            supplier_id="supplier-1",
+            requested_quantity=requested_quantity,
+        )
+
+    assert error.value.status_code == 400
+    assert error.value.message == "Requested quantity must be greater than zero"
+
+
+def test_procurement_analysis_service_rejects_missing_product(
+    monkeypatch,
+) -> None:
+    _install_fail_fast_stubs(monkeypatch)
+    monkeypatch.setattr(
+        "app.services.procurement_analysis_service.ProductService.get_product_by_id",
+        lambda db, product_id: None,
+    )
+    service = ProcurementAnalysisService(db=object())
+
+    with pytest.raises(ProcurementEvaluationError) as error:
+        service.analyze(
+            product_id="missing-product",
+            supplier_id="supplier-1",
+            requested_quantity=120,
+        )
+
+    assert error.value.status_code == 404
+    assert error.value.message == "Product not found"
+
+
+def test_procurement_analysis_service_rejects_missing_supplier(
+    monkeypatch,
+) -> None:
+    _install_fail_fast_stubs(monkeypatch)
+    monkeypatch.setattr(
+        "app.services.procurement_analysis_service.ProductService.get_product_by_id",
+        lambda db, product_id: SimpleNamespace(
+            id=product_id,
+            name="COVID Vaccine A",
+        ),
+    )
+    monkeypatch.setattr(
+        "app.services.procurement_analysis_service.SupplierService.get_supplier_by_id",
+        lambda db, supplier_id: None,
+    )
+    service = ProcurementAnalysisService(db=object())
+
+    with pytest.raises(ProcurementEvaluationError) as error:
+        service.analyze(
+            product_id="product-1",
+            supplier_id="missing-supplier",
+            requested_quantity=120,
+        )
+
+    assert error.value.status_code == 404
+    assert error.value.message == "Supplier not found"
