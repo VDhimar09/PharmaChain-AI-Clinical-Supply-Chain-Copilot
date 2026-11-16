@@ -36,5 +36,8 @@ sentence-transformers==5.6.1
 # LangGraph agent orchestration
 langgraph==1.0.7
 
+# Model Context Protocol server SDK
+mcp==2.3.0
+
 # Prometheus metrics
 prometheus-client==0.26.0
