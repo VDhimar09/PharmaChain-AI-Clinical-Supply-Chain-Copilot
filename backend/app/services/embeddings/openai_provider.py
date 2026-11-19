@@ -1,8 +1,11 @@
+import time
+
 from openai import OpenAI
 from openai import OpenAIError
 
 from app.core.config import settings
 from app.core.logging import get_logger
+from app.observability.metrics import record_openai_usage
 from app.services.embeddings.base_provider import EmbeddingError
 from app.services.embeddings.base_provider import EmbeddingProvider
 
@@ -61,6 +64,7 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
         return embeddings
 
     def _embed_batch(self, batch: list[str]) -> list[list[float]]:
+        started_at = time.perf_counter()
         try:
             response = self._client.embeddings.create(
                 model=self._model,
@@ -68,6 +72,12 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
                 dimensions=self._dimension,
             )
         except OpenAIError as exc:
+            record_openai_usage(
+                operation="embeddings",
+                model=self._model,
+                outcome="error",
+                duration_seconds=time.perf_counter() - started_at,
+            )
             logger.error(
                 "OpenAI embedding request failed for a batch of %s text(s): %s",
                 len(batch),
@@ -77,5 +87,15 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
                 "Failed to generate embeddings via OpenAI."
             ) from exc
 
+        duration_seconds = time.perf_counter() - started_at
         ordered = sorted(response.data, key=lambda item: item.index)
+        usage = getattr(response, "usage", None)
+        record_openai_usage(
+            operation="embeddings",
+            model=self._model,
+            outcome="success",
+            input_tokens=getattr(usage, "prompt_tokens", None),
+            output_tokens=None,
+            duration_seconds=duration_seconds,
+        )
         return [item.embedding for item in ordered]
