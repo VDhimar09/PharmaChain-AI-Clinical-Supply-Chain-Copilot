@@ -60,6 +60,25 @@ Never claim successful validation without evidence.
 - Review contributions before merging.
 - Preserve security and data-protection requirements.
 
+### Skills feed metadata
+
+The weekly skills-feed automation reads every immediate subdirectory of
+`.github/ai-toolkit/skills`. Each directory must contain a `SKILL.md` file.
+Its first block must be YAML front matter delimited by `---` and contain
+non-empty, single-line `name` and `description` fields. Double quotes around a
+value are supported; additional fields are ignored.
+
+```md
+---
+name: example-skill
+description: A concise description of the skill.
+---
+```
+
+Run `python .github/ai-toolkit/scripts/generate_skills_feed.py` after changing
+a skill and commit the resulting `skills.json` update. Pull requests and pushes
+also verify that the checked-in catalog is current.
+
 ## Important
 
 This library documents reusable resources. Copilot discovery and execution depend on the supported integration files in the relevant project.
