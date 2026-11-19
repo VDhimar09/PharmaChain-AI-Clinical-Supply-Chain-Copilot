@@ -68,6 +68,7 @@ def test_openai_provider_requires_api_key(monkeypatch):
 
 def test_openai_provider_returns_embeddings_in_request_order(monkeypatch):
     captured_kwargs = {}
+    recorded_usage = []
 
     class _FakeEmbeddingItem:
         def __init__(self, index, embedding):
@@ -99,6 +100,10 @@ def test_openai_provider_returns_embeddings_in_request_order(monkeypatch):
         "app.services.embeddings.openai_provider.OpenAI",
         _FakeOpenAIClient,
     )
+    monkeypatch.setattr(
+        "app.services.embeddings.openai_provider.record_openai_usage",
+        lambda **kwargs: recorded_usage.append(kwargs),
+    )
 
     provider = OpenAIEmbeddingProvider(
         model="text-embedding-3-small",
@@ -114,9 +119,59 @@ def test_openai_provider_returns_embeddings_in_request_order(monkeypatch):
         "input": ["first", "second"],
         "dimensions": 2,
     }
+    assert recorded_usage[0]["operation"] == "embeddings"
+    assert recorded_usage[0]["model"] == "text-embedding-3-small"
+    assert recorded_usage[0]["outcome"] == "success"
+    assert recorded_usage[0]["input_tokens"] is None
+    assert recorded_usage[0]["output_tokens"] is None
+    assert recorded_usage[0]["duration_seconds"] >= 0
+
+
+def test_openai_provider_records_available_embedding_usage(monkeypatch):
+    recorded_usage = []
+
+    class _FakeEmbeddingItem:
+        index = 0
+        embedding = [0.1]
+
+    class _FakeUsage:
+        prompt_tokens = 12
+
+    class _FakeResponse:
+        data = [_FakeEmbeddingItem()]
+        usage = _FakeUsage()
+
+    class _FakeEmbeddingsResource:
+        def create(self, model, input, dimensions):
+            return _FakeResponse()
+
+    class _FakeOpenAIClient:
+        def __init__(self, api_key):
+            self.embeddings = _FakeEmbeddingsResource()
+
+    monkeypatch.setattr(
+        "app.services.embeddings.openai_provider.OpenAI",
+        _FakeOpenAIClient,
+    )
+    monkeypatch.setattr(
+        "app.services.embeddings.openai_provider.record_openai_usage",
+        lambda **kwargs: recorded_usage.append(kwargs),
+    )
+
+    provider = OpenAIEmbeddingProvider(api_key="fake-key", dimension=1)
+
+    assert provider.embed_texts(["hello"]) == [[0.1]]
+    assert len(recorded_usage) == 1
+    assert recorded_usage[0]["operation"] == "embeddings"
+    assert recorded_usage[0]["model"] == provider._model
+    assert recorded_usage[0]["outcome"] == "success"
+    assert recorded_usage[0]["input_tokens"] == 12
+    assert recorded_usage[0]["output_tokens"] is None
+    assert recorded_usage[0]["duration_seconds"] >= 0
 
 
 def test_openai_provider_wraps_provider_errors(monkeypatch):
+    recorded_usage = []
     class _FailingEmbeddingsResource:
         def create(self, model, input, dimensions):
             raise APIConnectionError(request=None)
@@ -129,11 +184,22 @@ def test_openai_provider_wraps_provider_errors(monkeypatch):
         "app.services.embeddings.openai_provider.OpenAI",
         _FakeOpenAIClient,
     )
+    monkeypatch.setattr(
+        "app.services.embeddings.openai_provider.record_openai_usage",
+        lambda **kwargs: recorded_usage.append(kwargs),
+    )
 
     provider = OpenAIEmbeddingProvider(api_key="fake-key", dimension=4)
 
     with pytest.raises(EmbeddingError):
         provider.embed_texts(["hello"])
+
+    assert recorded_usage[0]["operation"] == "embeddings"
+    assert recorded_usage[0]["model"] == provider._model
+    assert recorded_usage[0]["outcome"] == "error"
+    assert "input_tokens" not in recorded_usage[0]
+    assert "output_tokens" not in recorded_usage[0]
+    assert recorded_usage[0]["duration_seconds"] >= 0
 
 
 def test_openai_provider_batches_large_requests(monkeypatch):
