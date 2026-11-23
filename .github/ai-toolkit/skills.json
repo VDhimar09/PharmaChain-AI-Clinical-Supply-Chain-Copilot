@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "skills": [
+    {
+      "name": "api-development",
+      "description": "Develop and review PharmaChain FastAPI endpoints using established backend conventions, secure database practices, RBAC and testing standards.",
+      "path": ".github/skills/api-development/SKILL.md"
+    },
+    {
+      "name": "python-testing",
+      "description": "Create, improve, and validate Python tests in PharmaChain. Use when adding or changing Python backend code, FastAPI endpoints, services, database operations, Pydantic validation, or when investigating a test failure.",
+      "path": ".github/skills/python-testing/SKILL.md"
+    }
+  ]
+}
