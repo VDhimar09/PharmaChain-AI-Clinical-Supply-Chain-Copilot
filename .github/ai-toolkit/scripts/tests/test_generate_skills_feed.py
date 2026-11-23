@@ -21,7 +21,7 @@ def write_skill(directory: Path, front_matter: str) -> None:
 
 
 def test_build_feed_sorts_skills_and_uses_canonical_paths(tmp_path: Path) -> None:
-    skills_directory = tmp_path / ".github" / "ai-toolkit" / "skills"
+    skills_directory = tmp_path / ".github" / "skills"
     skills_directory.mkdir(parents=True)
     write_skill(
         skills_directory / "zebra",
@@ -40,12 +40,12 @@ def test_build_feed_sorts_skills_and_uses_canonical_paths(tmp_path: Path) -> Non
             {
                 "name": "alpha",
                 "description": "First skill",
-                "path": ".github/ai-toolkit/skills/alpha/SKILL.md",
+                "path": ".github/skills/alpha/SKILL.md",
             },
             {
                 "name": "zebra",
                 "description": "Last skill",
-                "path": ".github/ai-toolkit/skills/zebra/SKILL.md",
+                "path": ".github/skills/zebra/SKILL.md",
             },
         ],
     }
