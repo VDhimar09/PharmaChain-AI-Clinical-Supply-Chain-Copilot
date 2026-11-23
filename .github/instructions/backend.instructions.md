@@ -1,7 +1,12 @@
+---
+name: PharmaChain Backend Instructions
+description: Apply PharmaChain Python backend conventions to backend source files.
+applyTo: "backend/**/*.py"
+---
+
 # PharmaChain Backend Instructions
 
 ## Technology
-
 - Python 3.13
 - FastAPI
 - SQLAlchemy 2.0
@@ -12,7 +17,6 @@
 - pgvector for vector search and document embeddings
 
 ## Development Standards
-
 1. Keep route handlers focused on HTTP concerns.
 2. Put business logic in service classes.
 3. Use repositories for database access.
@@ -23,7 +27,6 @@
 8. Keep changes focused and avoid unrelated modifications.
 
 ## Database
-
 - Use established SQLAlchemy conventions.
 - Manage deployed schema changes through Alembic migrations.
 - Do not treat `Base.metadata.create_all()` as a replacement for Alembic migrations.
@@ -36,7 +39,6 @@
 - Be aware that importing `app.main` can trigger database extension and table initialisation.
 
 ## Security and Authentication
-
 - Enforce authentication and server-side RBAC permissions.
 - Use existing `Depends(require_permission(...))` and `Depends(require_role(...))` patterns where appropriate.
 - Validate bearer access tokens and their expected token type.
@@ -52,7 +54,6 @@
 - Validate incoming data on the server.
 
 ## Logging and Data Protection
-
 - Never log credentials, passwords, authentication tokens or refresh tokens.
 - Avoid logging raw request bodies containing sensitive information.
 - Do not expose document chunk text or embedding vectors in production logs.
@@ -61,7 +62,6 @@
 - Follow existing application logging and error-handling conventions.
 
 ## Document Ingestion and RAG
-
 - Enforce configured upload-size limits.
 - Validate permitted MIME types and file extensions.
 - Follow existing document sanitisation and storage-provider conventions.
@@ -74,7 +74,6 @@
 - Clearly distinguish missing evidence from verified evidence.
 
 ## AI and Procurement
-
 - Keep procurement decisions deterministic.
 - Do not replace established business rules with unsupported LLM decisions.
 - Keep AI recommendations separate from authorised operational actions.
@@ -83,7 +82,6 @@
 - Validate AI-generated content and evidence before returning results.
 
 ## Testing
-
 - Follow existing pytest and FastAPI TestClient conventions.
 - Test success, validation boundaries, permissions, missing records and business-rule failures.
 - Test authentication and refresh-token behaviour where relevant.
@@ -96,7 +94,6 @@
 - Never claim tests passed without evidence.
 
 ## AI Assistant Behaviour
-
 - Inspect existing code before suggesting changes.
 - Prefer small, focused changes.
 - Do not invent project functionality or claim unverified implementation details.
@@ -105,13 +102,4 @@
 - Clearly distinguish confirmed findings from assumptions and recommendations.
 
 ## Final Report
-
-Summarise:
-
-- Files and components affected.
-- Architecture and conventions followed.
-- Security and database considerations.
-- Validation performed.
-- Exact test commands and actual results.
-- Tests not executed and reasons.
-- Remaining risks and recommendations.
+Summarise files and components affected, architecture and conventions followed, security and database considerations, validation performed, exact test commands and actual results, tests not executed and reasons, and remaining risks and recommendations.

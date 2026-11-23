@@ -1,7 +1,12 @@
+---
+name: PharmaChain Frontend Instructions
+description: Apply PharmaChain React and TypeScript conventions to frontend source files.
+applyTo: "frontend/**/*.{ts,tsx}"
+---
+
 # PharmaChain Frontend Instructions
 
 ## Technology
-
 - React 19
 - TypeScript 5
 - Vite
@@ -11,7 +16,6 @@
 - Zod
 
 ## Development Standards
-
 1. Use functional React components and hooks.
 2. Define explicit TypeScript types for component props, API payloads and responses.
 3. Use interfaces and discriminated unions where appropriate.
@@ -23,7 +27,6 @@
 9. Keep frontend types aligned with backend API contracts.
 
 ## API Integration
-
 - Follow existing API client conventions.
 - Use the shared API client rather than duplicating fetch logic inside components.
 - Attach Authorization headers only for authenticated requests.
@@ -35,7 +38,6 @@
 - Treat route parameters and user-controlled values as untrusted input.
 
 ## Authentication and Route Protection
-
 - Follow existing authentication context and route-guard patterns.
 - Use the established token storage and refresh mechanisms.
 - Treat authentication tokens as sensitive client-side secrets.
@@ -47,7 +49,6 @@
 - Redirect or fail closed when authentication cannot be established.
 
 ## TanStack Query
-
 - Use TanStack Query for server-state management.
 - Follow existing query and mutation hooks in the shared API hooks module.
 - Use stable query keys scoped to the relevant entity and identifier.
@@ -59,7 +60,6 @@
 - Follow existing authentication and cache-cleanup behaviour.
 
 ## Forms and User Experience
-
 - Validate form input before submitting.
 - Use Zod where appropriate for runtime validation.
 - Avoid sending invalid payloads to the backend.
@@ -70,7 +70,6 @@
 - Preserve existing application behaviour.
 
 ## Accessibility
-
 - Use semantic HTML elements.
 - Provide accessible labels for all form fields and interactive controls.
 - Give icon-only buttons accessible names.
@@ -82,7 +81,6 @@
 - Do not rely on colour alone to communicate errors or status.
 
 ## Security and Sensitive Data
-
 - Never embed API keys, credentials or backend secrets in browser-accessible code.
 - Do not store unnecessary sensitive operational data in localStorage or sessionStorage.
 - Never log authentication tokens or confidential user information.
@@ -91,7 +89,6 @@
 - Follow the existing session and logout security behaviour.
 
 ## AI and RAG User Interfaces
-
 - Clearly distinguish retrieved evidence from AI-generated recommendations.
 - Display supporting evidence and provenance where appropriate.
 - Do not present unverified AI output as an authoritative operational decision.
@@ -100,25 +97,16 @@
 - Clearly communicate when evidence is missing or insufficient.
 
 ## Quality Checks
-
 Use the project's available scripts:
-
 - `npm run lint`
 - `npm exec tsc --noEmit`
 - `npm run build`
 
-Also consider:
-
-- Checking important route and mutation flows.
-- Verifying authentication and expired-session behaviour.
-- Checking keyboard navigation and focus management.
-- Reviewing loading, empty and error states.
-- Checking responsive layouts.
+Also consider checking important route and mutation flows, authentication and expired-session behaviour, keyboard navigation and focus management, loading/empty/error states, and responsive layouts.
 
 Report exact commands and actual results. Do not claim success without evidence.
 
 ## AI Assistant Behaviour
-
 - Inspect existing frontend components and hooks before making changes.
 - Follow established project conventions.
 - Prefer small, focused changes.
@@ -127,13 +115,4 @@ Report exact commands and actual results. Do not claim success without evidence.
 - Do not modify unrelated functionality without justification.
 
 ## Final Report
-
-Summarise:
-
-- Components and files affected.
-- Frontend conventions followed.
-- API and authentication considerations.
-- Accessibility and security considerations.
-- Validation performed.
-- Exact commands and actual results.
-- Remaining risks and recommendations.
+Summarise components and files affected, frontend conventions followed, API and authentication considerations, accessibility and security considerations, validation performed, exact commands and actual results, and remaining risks and recommendations.

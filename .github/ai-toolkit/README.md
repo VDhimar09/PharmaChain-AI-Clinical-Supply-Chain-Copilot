@@ -4,7 +4,19 @@
 
 ## Purpose
 
-A reusable collection of GitHub Copilot skills, prompts, instructions and agents designed to support consistent AI-assisted software development.
+A reusable collection of GitHub Copilot skills, prompts, instructions and custom agents designed to support consistent AI-assisted software development.
+
+## Where resources live
+
+Copilot-facing resources use the standard repository locations:
+
+- `.github/copilot-instructions.md`: project-wide instructions.
+- `.github/instructions/*.instructions.md`: path-specific instructions selected by `applyTo` patterns.
+- `.github/agents/*.agent.md`: custom agent definitions.
+- `.github/prompts/*.prompt.md`: reusable prompt files.
+- `.github/skills/*/SKILL.md`: reusable skills.
+
+The `.github/ai-toolkit/` directory is for maintaining the toolkit itself: documentation, scripts, tests, validation and the generated skills catalog. It does not contain duplicate copies of Copilot-facing resources.
 
 ## Toolkit Components
 
@@ -27,16 +39,16 @@ A reusable collection of GitHub Copilot skills, prompts, instructions and agents
 
 ### Instructions
 
-- Backend: Python, FastAPI, database and security conventions.
-- Frontend: React, TypeScript and frontend development conventions.
+- Backend: Python, FastAPI, database and security conventions, applied to `backend/**/*.py`.
+- Frontend: React, TypeScript and frontend conventions, applied to `frontend/**/*.{ts,tsx}`.
 
 ## How to Use
 
-1. Open the PharmaChain repository in VS Code.
-2. Open GitHub Copilot Chat.
-3. Select the relevant skill, prompt or custom agent.
+1. Open the PharmaChain repository in VS Code with GitHub Copilot enabled.
+2. Use project instructions automatically as applicable.
+3. In Copilot Chat, select a relevant custom agent or invoke a prompt/skill where supported.
 4. Provide a specific development task.
-5. Review the output before accepting changes.
+5. Review all generated output and changes before accepting them.
 
 ## Quality and Validation
 
@@ -52,21 +64,9 @@ Record:
 
 Never claim successful validation without evidence.
 
-## Maintenance
+## Skills catalog
 
-- Review resources when project architecture changes.
-- Update outdated instructions and examples.
-- Document changes in CHANGELOG.md.
-- Review contributions before merging.
-- Preserve security and data-protection requirements.
-
-### Skills feed metadata
-
-The weekly skills-feed automation reads every immediate subdirectory of
-`.github/ai-toolkit/skills`. Each directory must contain a `SKILL.md` file.
-Its first block must be YAML front matter delimited by `---` and contain
-non-empty, single-line `name` and `description` fields. Double quotes around a
-value are supported; additional fields are ignored.
+The catalog is generated from each immediate subdirectory of `.github/skills`. Every skill directory must contain a `SKILL.md` file whose first block is YAML front matter delimited by `---`, with non-empty, single-line `name` and `description` fields. Double quotes around values are supported; additional fields are ignored.
 
 ```md
 ---
@@ -75,10 +75,16 @@ description: A concise description of the skill.
 ---
 ```
 
-Run `python .github/ai-toolkit/scripts/generate_skills_feed.py` after changing
-a skill and commit the resulting `skills.json` update. Pull requests and pushes
-also verify that the checked-in catalog is current.
+Run `python .github/ai-toolkit/scripts/generate_skills_feed.py` after changing a skill. The generated catalog is `.github/ai-toolkit/skills.json`. Pull requests and pushes validate that the checked-in catalog is current; the scheduled/manual workflow can refresh it.
+
+## Maintenance
+
+- Review resources when project architecture changes.
+- Update outdated instructions and examples.
+- Document changes in CHANGELOG.md.
+- Review contributions before merging.
+- Preserve security and data-protection requirements.
 
 ## Important
 
-This library documents reusable resources. Copilot discovery and execution depend on the supported integration files in the relevant project.
+The skills catalog is project-maintained metadata, not itself a native Copilot discovery mechanism. Copilot resource discovery depends on the supported files in the standard locations above.

@@ -1,4 +1,7 @@
-<!-- @format -->
+---
+name: PR Review
+description: Review PharmaChain pull requests for correctness, security and maintainability.
+---
 
 # Pull Request Review
 

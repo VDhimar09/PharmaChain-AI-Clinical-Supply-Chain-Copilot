@@ -7,8 +7,8 @@ from pathlib import Path
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
-SKILLS_DIRECTORY = REPOSITORY_ROOT / ".github" / "ai-toolkit" / "skills"
-OUTPUT_PATH = SKILLS_DIRECTORY / "skills.json"
+SKILLS_DIRECTORY = REPOSITORY_ROOT / ".github" / "skills"
+OUTPUT_PATH = REPOSITORY_ROOT / ".github" / "ai-toolkit" / "skills.json"
 REQUIRED_FIELDS = ("name", "description")
 
 
@@ -70,6 +70,7 @@ def build_feed(
 
 def main() -> None:
     """Write the catalog in a stable form suitable for source control."""
+    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT_PATH.write_text(
         json.dumps(build_feed(), indent=2) + "\n",
         encoding="utf-8",
