@@ -3,12 +3,14 @@ name: Refresh Copilot Skills Feed
 on:
   push:
     paths:
-      - ".github/ai-toolkit/skills/**"
+      - ".github/skills/**"
+      - ".github/ai-toolkit/skills.json"
       - ".github/ai-toolkit/scripts/**"
       - ".github/workflows/copilot-skills-feed.yml"
   pull_request:
     paths:
-      - ".github/ai-toolkit/skills/**"
+      - ".github/skills/**"
+      - ".github/ai-toolkit/skills.json"
       - ".github/ai-toolkit/scripts/**"
       - ".github/workflows/copilot-skills-feed.yml"
   schedule:
@@ -40,7 +42,7 @@ jobs:
 
       - name: Verify generated catalog
         if: github.event_name == 'push' || github.event_name == 'pull_request'
-        run: git diff --exit-code -- .github/ai-toolkit/skills/skills.json
+        run: git diff --exit-code -- .github/ai-toolkit/skills.json
 
       - name: Run feed tests
         run: |
@@ -69,13 +71,13 @@ jobs:
 
       - name: Commit updated skills feed
         run: |
-          if git diff --quiet -- .github/ai-toolkit/skills/skills.json; then
+          if git diff --quiet -- .github/ai-toolkit/skills.json; then
             echo "Skills feed is already current."
             exit 0
           fi
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .github/ai-toolkit/skills/skills.json
+          git add .github/ai-toolkit/skills.json
           git commit -m "chore: refresh Copilot skills feed"
           git push
